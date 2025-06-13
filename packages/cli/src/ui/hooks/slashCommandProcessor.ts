@@ -29,8 +29,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
-import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 import { getCliVersion } from '../../utils/version.js';
+import { LoadedSettings } from '../../config/settings.js';
+import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -58,6 +59,7 @@ export interface SlashCommand {
  */
 export const useSlashCommandProcessor = (
   config: Config | null,
+  settings: LoadedSettings,
   history: HistoryItem[],
   addItem: UseHistoryManagerReturn['addItem'],
   clearItems: UseHistoryManagerReturn['clearItems'],
@@ -67,6 +69,7 @@ export const useSlashCommandProcessor = (
   onDebugMessage: (message: string) => void,
   openThemeDialog: () => void,
   openEditorDialog: () => void,
+  openConnectIDEDialog: () => void,
   performMemoryRefresh: () => Promise<void>,
   toggleCorgiMode: () => void,
   showToolDescriptions: boolean = false,
@@ -643,6 +646,16 @@ Add any other context about the problem here.
       },
     ];
 
+    if (settings.merged.enableIDE) {
+      commands.push({
+        name: 'ide',
+        description: 'connect to a supported IDE',
+        action: (_mainCommand, _subCommand, _args) => {
+          openConnectIDEDialog();
+        },
+      });
+    }
+
     if (config?.getCheckpointEnabled()) {
       commands.push({
         name: 'restore',
@@ -754,6 +767,7 @@ Add any other context about the problem here.
     refreshStatic,
     openThemeDialog,
     openEditorDialog,
+    openConnectIDEDialog,
     clearItems,
     performMemoryRefresh,
     showMemoryAction,
@@ -767,6 +781,7 @@ Add any other context about the problem here.
     loadHistory,
     addItem,
     setQuittingMessages,
+    settings.merged.enableIDE,
   ]);
 
   const handleSlashCommand = useCallback(

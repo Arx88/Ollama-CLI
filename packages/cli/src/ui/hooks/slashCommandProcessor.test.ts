@@ -64,6 +64,7 @@ import {
   getMCPDiscoveryState,
 } from '@gemini-cli/core';
 import { useSessionStats } from '../contexts/SessionContext.js';
+import { LoadedSettings } from '../../config/settings.js';
 
 vi.mock('@gemini-code/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@gemini-code/core')>();
@@ -98,6 +99,7 @@ describe('useSlashCommandProcessor', () => {
   let mockOnDebugMessage: ReturnType<typeof vi.fn>;
   let mockOpenThemeDialog: ReturnType<typeof vi.fn>;
   let mockOpenEditorDialog: ReturnType<typeof vi.fn>;
+  let mockOpenConnectIDEDialog: ReturnType<typeof vi.fn>;
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockSetQuittingMessages: ReturnType<typeof vi.fn>;
   let mockConfig: Config;
@@ -113,6 +115,7 @@ describe('useSlashCommandProcessor', () => {
     mockOnDebugMessage = vi.fn();
     mockOpenThemeDialog = vi.fn();
     mockOpenEditorDialog = vi.fn();
+    mockOpenConnectIDEDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
     mockSetQuittingMessages = vi.fn();
     mockConfig = {
@@ -149,6 +152,7 @@ describe('useSlashCommandProcessor', () => {
     const { result } = renderHook(() =>
       useSlashCommandProcessor(
         mockConfig,
+        { merged: { enableIDE: false } } as LoadedSettings,
         [],
         mockAddItem,
         mockClearItems,
@@ -158,6 +162,7 @@ describe('useSlashCommandProcessor', () => {
         mockOnDebugMessage,
         mockOpenThemeDialog,
         mockOpenEditorDialog,
+        mockOpenConnectIDEDialog,
         mockPerformMemoryRefresh,
         mockCorgiMode,
         showToolDescriptions,

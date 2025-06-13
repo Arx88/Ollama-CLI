@@ -54,6 +54,7 @@ import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
 import { SessionStatsProvider } from './contexts/SessionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
+import { ConnectIDEDialog } from './components/ConnectIDEDialog.js';
 
 const CTRL_C_PROMPT_DURATION_MS = 1000;
 
@@ -97,7 +98,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [quittingMessages, setQuittingMessages] = useState<
     HistoryItem[] | null
   >(null);
+  const [isConnectIDEDialogOpen, setIsConnectIDEDialogOpen] = useState(false);
   const ctrlCTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const openConnectIDEDialog = useCallback(() => {
+    setIsConnectIDEDialogOpen(true);
+  }, []);
 
   const errorCount = useMemo(
     () => consoleMessages.filter((msg) => msg.type === 'error').length,
@@ -166,6 +172,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
   const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
     config,
+    settings,
     history,
     addItem,
     clearItems,
@@ -175,6 +182,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     setDebugMessage,
     openThemeDialog,
     openEditorDialog,
+    openConnectIDEDialog,
     performMemoryRefresh,
     toggleCorgiMode,
     showToolDescriptions,
@@ -482,6 +490,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 onExit={exitEditorDialog}
               />
             </Box>
+          ) : isConnectIDEDialogOpen ? (
+            <ConnectIDEDialog onExit={() => setIsConnectIDEDialogOpen(false)} />
           ) : (
             <>
               <LoadingIndicator

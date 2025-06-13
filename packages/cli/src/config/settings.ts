@@ -39,6 +39,7 @@ export interface Settings {
   accessibility?: AccessibilitySettings;
   telemetry?: boolean;
   preferredEditor?: string;
+  ide?: IDESettings;
 
   // Git-aware file filtering settings
   fileFiltering?: {
@@ -50,6 +51,23 @@ export interface Settings {
   hideWindowTitle?: boolean;
 
   // Add other settings here.
+  enableIDE?: boolean;
+}
+
+export interface IDECapabilities {
+  // The IDE supports opening a file and selecting a range.
+  openFile?: boolean;
+}
+
+export interface IDESettings {
+  // Path to the IDE binary.
+  path?: string;
+  // The extension is installed.
+  extensionInstalled?: boolean;
+  // The port the MCP server is running on.
+  mcpPort?: number;
+  // The capabilities of the IDE.
+  capabilities?: IDECapabilities;
 }
 
 export interface SettingsError {
