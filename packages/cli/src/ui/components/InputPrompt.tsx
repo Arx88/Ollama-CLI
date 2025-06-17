@@ -281,10 +281,10 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         console.log('[InputPromptCombined] event', { input, key });
       }
 
-      // Ctrl+Enter for newline, Enter for submit
+      // Shift+Enter for newline, Enter for submit
       if (key.return) {
-        if (key.ctrl) {
-          // Ctrl+Enter for newline
+        if (key.shift) {
+          // Shift+Enter for newline
           buffer.newline();
         } else {
           // Enter for submit
