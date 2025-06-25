@@ -19,6 +19,12 @@ import { useCompletion } from '../hooks/useCompletion.js';
 import { isAtCommand, isSlashCommand } from '../utils/commandUtils.js';
 import { SlashCommand } from '../hooks/slashCommandProcessor.js';
 import { Config } from '@google/gemini-cli-core';
+import {
+  clipboardHasImage,
+  saveClipboardImage,
+  cleanupOldClipboardImages,
+} from '../utils/clipboardUtils.js';
+import * as path from 'path';
 
 export interface InputPromptProps {
   buffer: TextBuffer;
@@ -50,7 +56,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   setShellModeActive,
 }) => {
   const [justNavigatedHistory, setJustNavigatedHistory] = useState(false);
-
   const completion = useCompletion(
     buffer.text,
     config.getTargetDir(),
@@ -154,6 +159,53 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       slashCommands,
     ],
   );
+
+  // Handle clipboard image pasting with Ctrl+V
+  const handleClipboardImage = useCallback(async () => {
+    try {
+      if (await clipboardHasImage()) {
+        const imagePath = await saveClipboardImage(config.getTargetDir());
+        if (imagePath) {
+          // Clean up old images
+          cleanupOldClipboardImages(config.getTargetDir()).catch(() => {
+            // Ignore cleanup errors
+          });
+
+          // Get relative path from current directory
+          const relativePath = path.relative(config.getTargetDir(), imagePath);
+
+          // Insert @path reference at cursor position
+          const insertText = `@${relativePath}`;
+          const currentText = buffer.text;
+          const [row, col] = buffer.cursor;
+          
+          // Calculate offset from row/col
+          let offset = 0;
+          for (let i = 0; i < row; i++) {
+            offset += buffer.lines[i].length + 1; // +1 for newline
+          }
+          offset += col;
+          
+          // Add spaces around the path if needed
+          let textToInsert = insertText;
+          const charBefore = offset > 0 ? currentText[offset - 1] : '';
+          const charAfter = offset < currentText.length ? currentText[offset] : '';
+          
+          if (charBefore && charBefore !== ' ' && charBefore !== '\n') {
+            textToInsert = ' ' + textToInsert;
+          }
+          if (!charAfter || (charAfter !== ' ' && charAfter !== '\n')) {
+            textToInsert = textToInsert + ' ';
+          }
+          
+          // Insert at cursor position
+          buffer.replaceRangeByOffset(offset, offset, textToInsert);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling clipboard image:', error);
+    }
+  }, [buffer, config]);
 
   useInput(
     (input, key) => {
@@ -348,6 +400,12 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         return;
       }
 
+      // Ctrl+V for image paste
+      if (key.ctrl && input === 'v') {
+        handleClipboardImage();
+        return;
+      }
+
       // Fallback to buffer's default input handling
       buffer.handleInput(input, key as Record<string, boolean>);
     },
@@ -394,31 +452,32 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 
               if (visualIdxInRenderedSet === cursorVisualRow) {
                 const relativeVisualColForHighlight = cursorVisualColAbsolute;
-                if (relativeVisualColForHighlight >= 0) {
-                  if (relativeVisualColForHighlight < cpLen(display)) {
-                    const charToHighlight =
-                      cpSlice(
-                        display,
-                        relativeVisualColForHighlight,
-                        relativeVisualColForHighlight + 1,
-                      ) || ' ';
-                    const highlighted = chalk.inverse(charToHighlight);
-                    display =
-                      cpSlice(display, 0, relativeVisualColForHighlight) +
-                      highlighted +
-                      cpSlice(display, relativeVisualColForHighlight + 1);
-                  } else if (
-                    relativeVisualColForHighlight === cpLen(display) &&
-                    cpLen(display) === inputWidth
-                  ) {
-                    display = display + chalk.inverse(' ');
+
+                  if (relativeVisualColForHighlight >= 0) {
+                    if (relativeVisualColForHighlight < cpLen(display)) {
+                      const charToHighlight =
+                        cpSlice(
+                          display,
+                          relativeVisualColForHighlight,
+                          relativeVisualColForHighlight + 1,
+                        ) || ' ';
+                      const highlighted = chalk.inverse(charToHighlight);
+                      display =
+                        cpSlice(display, 0, relativeVisualColForHighlight) +
+                        highlighted +
+                        cpSlice(display, relativeVisualColForHighlight + 1);
+                    } else if (
+                      relativeVisualColForHighlight === cpLen(display) &&
+                      cpLen(display) === inputWidth
+                    ) {
+                      display = display + chalk.inverse(' ');
+                    }
                   }
                 }
-              }
-              return (
-                <Text key={`line-${visualIdxInRenderedSet}`}>{display}</Text>
-              );
-            })
+                return (
+                  <Text key={`line-${visualIdxInRenderedSet}`}>{display}</Text>
+                );
+              })
           )}
         </Box>
       </Box>
