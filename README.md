@@ -33,8 +33,14 @@ With the Gemini CLI you can:
    gemini
    ```
 
-3. **Pick a color theme**
-4. **Authenticate:** When prompted, sign in with your personal Google account. This will grant you up to 60 model requests per minute and 1,000 model requests per day using Gemini 2.5 Pro.
+   Then
+
+   ```
+   gemini
+   ```
+
+4. **Pick a color theme**
+5. **Authenticate:** When prompted, sign in with your personal Google account. This will grant you up to 60 model requests per minute and 1,000 model requests per day using Gemini 2.5 Pro.
 
 You are now ready to use the Gemini CLI!
 
