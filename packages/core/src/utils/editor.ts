@@ -6,10 +6,10 @@
 
 import { execSync, spawn } from 'child_process';
 
-export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim' | 'zed';
+export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim' | 'neovim' | 'zed';
 
 function isValidEditorType(editor: string): editor is EditorType {
-  return ['vscode', 'windsurf', 'cursor', 'vim', 'zed'].includes(editor);
+  return ['vscode', 'windsurf', 'cursor', 'vim', 'neovim', 'zed'].includes(editor);
 }
 
 interface DiffCommand {
@@ -34,6 +34,7 @@ const editorCommands: Record<EditorType, { win32: string; default: string }> = {
   windsurf: { win32: 'windsurf', default: 'windsurf' },
   cursor: { win32: 'cursor', default: 'cursor' },
   vim: { win32: 'vim', default: 'vim' },
+  neovim: { win32: 'nvim', default: 'nvim' },
   zed: { win32: 'zed', default: 'zed' },
 };
 
@@ -114,6 +115,34 @@ export function getDiffCommand(
           newPath,
         ],
       };
+    case 'neovim':
+      return {
+        command: 'nvim',
+        args: [
+          '-d',
+          // skip viminfo file to avoid E138 errors
+          '-i',
+          'NONE',
+          // make the left window read-only and the right window editable
+          '-c',
+          'wincmd h | set readonly | wincmd l',
+          // set up colors for diffs
+          '-c',
+          'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
+          // Show helpful messages
+          '-c',
+          'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'wincmd h | setlocal statusline=OLD\\ FILE',
+          '-c',
+          'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          // Auto close all windows when one is closed
+          '-c',
+          'autocmd WinClosed * wqa',
+          oldPath,
+          newPath,
+        ],
+      };
     default:
       return null;
   }
@@ -161,7 +190,8 @@ export async function openDiff(
           });
         });
 
-      case 'vim': {
+      case 'vim':
+      case 'neovim': {
         // Use execSync for terminal-based editors
         const command =
           process.platform === 'win32'
