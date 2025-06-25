@@ -42,13 +42,13 @@ In addition to a project settings file, a project's `.gemini` directory can cont
 - **`bugCommand`** (object):
 
   - **Description:** Overrides the default URL for the `/bug` command.
-  - **Default:** `"urlTemplate": "https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.md&title={title}&body={body}"`
+  - **Default:** `"urlTemplate": "https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml&title={title}&info={info}"`
   - **Properties:**
-    - **`urlTemplate`** (string): A URL that can contain `{title}` and `{body}` placeholders.
+    - **`urlTemplate`** (string): A URL that can contain `{title}` and `{info}` placeholders.
   - **Example:**
     ```json
     "bugCommand": {
-      "urlTemplate": "https://bug.example.com/new?title={title}&body={body}"
+      "urlTemplate": "https://bug.example.com/new?title={title}&info={info}"
     }
     ```
 
@@ -260,11 +260,6 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - Required for using Vertex AI in non express mode.
   - If using Vertex AI, ensure you have the necessary permissions and set the `GOOGLE_GENAI_USE_VERTEXAI=true` environment variable.
   - Example: `export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"`.
-- **`GEMINI_CODE_ASSIST`**:
-  - Enables Code Assist functionality.
-  - Accepts `true`, `false`, or a custom command string.
-  - If you are using an Enterprise account you should also set the `GOOGLE_CLOUD_PROJECT` environment variable.
-  - Example: `export GEMINI_CODE_ASSIST=true`.
 - **`GEMINI_SANDBOX`**:
   - Alternative to the `sandbox` setting in `settings.json`.
   - Accepts `true`, `false`, `docker`, `podman`, or a custom command string.
@@ -432,6 +427,3 @@ You can opt out of usage statistics collection at any time by setting the `usage
   "usageStatisticsEnabled": false
 }
 ```
-
-**Privacy Policy:**
-Data collected is subject to the [Google Privacy Policy](https://policies.google.com/privacy).

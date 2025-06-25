@@ -30,10 +30,11 @@ With the Gemini CLI you can:
 
    ```bash
    npm install -g @google/gemini-cli
+   gemini
    ```
 
 3. **Pick a color theme**
-4. **Authenticate:** When prompted, sign in with your personal Google account. This will grant you up to 60 model requests per minute and 1,000 model requests per day using Gemini 2.5 Pro.
+4. **Authenticate:** When prompted, sign in with your personal Google account. This will grant you up to 60 model requests per minute and 1,000 model requests per day using Gemini.
 
 You are now ready to use the Gemini CLI!
 
@@ -57,17 +58,17 @@ Once the CLI is running, you can start interacting with Gemini from your shell.
 You can start a project from a new directory:
 
 ```sh
-$ cd new-project/
-$ gemini
+cd new-project/
+gemini
 > Write me a Gemini Discord bot that answers questions using a FAQ.md file I will provide
 ```
 
 Or work with an existing project:
 
 ```sh
-$ git clone https://github.com/google-gemini/gemini-cli
-$ cd gemini-cli
-$ gemini
+git clone https://github.com/google-gemini/gemini-cli
+cd gemini-cli
+gemini
 > Give me a summary of all of the changes that went in yesterday
 ```
 
@@ -78,6 +79,11 @@ $ gemini
 - If you encounter any issues, review the **[Troubleshooting guide](./docs/troubleshooting.md)**.
 - For more comprehensive documentation, see the [full documentation](./docs/index.md).
 - Take a look at some [popular tasks](#popular-tasks) for more inspiration.
+
+### Troubleshooting
+
+Head over to the [troubleshooting](docs/troubleshooting.md) guide if you're
+having issues.
 
 ## Popular tasks
 
@@ -125,10 +131,6 @@ Use MCP servers to integrate your local system tools with your enterprise collab
 > Organise my PDF invoices by month of expenditure.
 ```
 
-## Gemini APIs
+## Terms of Service and Privacy Notice
 
-This project leverages the Gemini APIs to provide AI capabilities. For details on the terms of service governing the Gemini API, please refer to the terms for the access mechanism you are using:
-
-- [Gemini API key](https://ai.google.dev/gemini-api/terms)
-- [Gemini Code Assist](https://developers.google.com/gemini-code-assist/resources/privacy-notices)
-- [Vertex AI](https://cloud.google.com/terms/service-terms)
+For details on the terms of service and privacy notice applicable to your use of Gemini CLI, see the [Terms of Service and Privacy Notice](./docs/tos-privacy.md).
