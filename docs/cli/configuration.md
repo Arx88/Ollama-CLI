@@ -6,11 +6,11 @@ Gemini CLI offers several ways to configure its behavior, including environment 
 
 Configuration is applied in the following order of precedence (lower numbers are overridden by higher numbers):
 
-1.  **Default values:** Hardcoded defaults within the application.
-2.  **User settings file:** Global settings for the current user.
-3.  **Project settings file:** Project-specific settings.
-4.  **Environment variables:** System-wide or session-specific variables, potentially loaded from `.env` files.
-5.  **Command-line arguments:** Values passed when launching the CLI.
+1. **Default values:** Hardcoded defaults within the application.
+2. **User settings file:** Global settings for the current user.
+3. **Project settings file:** Project-specific settings.
+4. **Environment variables:** System-wide or session-specific variables, potentially loaded from `.env` files.
+5. **Command-line arguments:** Values passed when launching the CLI.
 
 ## The user settings file and project settings file
 
@@ -31,7 +31,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
 
 - [Custom sandbox profiles](#sandboxing) (e.g., `.gemini/sandbox-macos-custom.sb`, `.gemini/sandbox.Dockerfile`).
 
-### Available settings in `settings.json`:
+### Available settings in `settings.json`
 
 - **`contextFileName`** (string or array of strings):
 
@@ -46,6 +46,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
   - **Properties:**
     - **`urlTemplate`** (string): A URL that can contain `{title}` and `{body}` placeholders.
   - **Example:**
+
     ```json
     "bugCommand": {
       "urlTemplate": "https://bug.example.com/new?title={title}&body={body}"
@@ -60,6 +61,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     - **`respectGitIgnore`** (boolean): Whether to respect .gitignore patterns when discovering files. When set to `true`, git-ignored files (like `node_modules/`, `dist/`, `.env`) are automatically excluded from @ commands and file listing operations.
     - **`enableRecursiveFileSearch`** (boolean): Whether to enable searching recursively for filenames under the current tree when completing @ prefixes in the prompt.
   - **Example:**
+
     ```json
     "fileFiltering": {
       "respectGitIgnore": true,
@@ -125,6 +127,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
       - `timeout` (number, optional): Timeout in milliseconds for requests to this MCP server.
       - `trust` (boolean, optional): Trust this server and bypass all tool call confirmations.
   - **Example:**
+
     ```json
     "mcpServers": {
       "myPythonServer": {
@@ -162,6 +165,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
   - **Example:** `"preferredEditor": "vscode"`
 
 - **`telemetry`** (object)
+
   - **Description:** Configures logging and metrics collection for Gemini CLI. For more information, see [Telemetry](../telemetry.md).
   - **Default:** `{"enabled": false, "target": "local", "otlpEndpoint": "http://localhost:4317", "logPrompts": true}`
   - **Properties:**
@@ -170,6 +174,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     - **`otlpEndpoint`** (string): The endpoint for the OTLP Exporter.
     - **`logPrompts`** (boolean): Whether or not to include the content of user prompts in the logs.
   - **Example:**
+
     ```json
     "telemetry": {
       "enabled": true,
@@ -178,15 +183,28 @@ In addition to a project settings file, a project's `.gemini` directory can cont
       "logPrompts": false
     }
     ```
+
 - **`usageStatisticsEnabled`** (boolean):
+
   - **Description:** Enables or disables the collection of usage statistics. See [Usage Statistics](#usage-statistics) for more information.
   - **Default:** `true`
   - **Example:**
+
     ```json
     "usageStatisticsEnabled": false
     ```
 
-### Example `settings.json`:
+- **`hideTips`** (boolean):
+
+  - **Description:** Enables or disables helpful tips in the CLI interface.
+  - **Default:** `false`
+  - **Example:**
+
+    ```json
+    "hideTips": true
+    ```
+
+### Example `settings.json`
 
 ```json
 {
@@ -209,7 +227,8 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     "otlpEndpoint": "http://localhost:4317",
     "logPrompts": true
   },
-  "usageStatisticsEnabled": true
+  "usageStatisticsEnabled": true,
+  "hideTips": false
 }
 ```
 
@@ -227,9 +246,9 @@ Environment variables are a common way to configure applications, especially for
 
 The CLI automatically loads environment variables from an `.env` file. The loading order is:
 
-1.  `.env` file in the current working directory.
-2.  If not found, it searches upwards in parent directories until it finds an `.env` file or reaches the project root (identified by a `.git` folder) or the home directory.
-3.  If still not found, it looks for `~/.env` (in the user's home directory).
+1. `.env` file in the current working directory.
+2. If not found, it searches upwards in parent directories until it finds an `.env` file or reaches the project root (identified by a `.git` folder) or the home directory.
+3. If still not found, it looks for `~/.env` (in the user's home directory).
 
 - **`GEMINI_API_KEY`** (Required):
   - Your API key for the Gemini API.
@@ -361,15 +380,15 @@ Here's a conceptual example of what a context file at the root of a TypeScript p
 This example demonstrates how you can provide general project context, specific coding conventions, and even notes about particular files or components. The more relevant and precise your context files are, the better the AI can assist you. Project-specific context files are highly encouraged to establish conventions and context.
 
 - **Hierarchical Loading and Precedence:** The CLI implements a sophisticated hierarchical memory system by loading context files (e.g., `GEMINI.md`) from several locations. Content from files lower in this list (more specific) typically overrides or supplements content from files higher up (more general). The exact concatenation order and final context can be inspected using the `/memory show` command. The typical loading order is:
-  1.  **Global Context File:**
-      - Location: `~/.gemini/<contextFileName>` (e.g., `~/.gemini/GEMINI.md` in your user home directory).
-      - Scope: Provides default instructions for all your projects.
-  2.  **Project Root & Ancestors Context Files:**
-      - Location: The CLI searches for the configured context file in the current working directory and then in each parent directory up to either the project root (identified by a `.git` folder) or your home directory.
-      - Scope: Provides context relevant to the entire project or a significant portion of it.
-  3.  **Sub-directory Context Files (Contextual/Local):**
-      - Location: The CLI also scans for the configured context file in subdirectories _below_ the current working directory (respecting common ignore patterns like `node_modules`, `.git`, etc.).
-      - Scope: Allows for highly specific instructions relevant to a particular component, module, or sub-section of your project.
+  1. **Global Context File:**
+     - Location: `~/.gemini/<contextFileName>` (e.g., `~/.gemini/GEMINI.md` in your user home directory).
+     - Scope: Provides default instructions for all your projects.
+  2. **Project Root & Ancestors Context Files:**
+     - Location: The CLI searches for the configured context file in the current working directory and then in each parent directory up to either the project root (identified by a `.git` folder) or your home directory.
+     - Scope: Provides context relevant to the entire project or a significant portion of it.
+  3. **Sub-directory Context Files (Contextual/Local):**
+     - Location: The CLI also scans for the configured context file in subdirectories _below_ the current working directory (respecting common ignore patterns like `node_modules`, `.git`, etc.).
+     - Scope: Allows for highly specific instructions relevant to a particular component, module, or sub-section of your project.
 - **Concatenation & UI Indication:** The contents of all found context files are concatenated (with separators indicating their origin and path) and provided as part of the system prompt to the Gemini model. The CLI footer displays the count of loaded context files, giving you a quick visual cue about the active instructional context.
 - **Commands for Memory Management:**
   - Use `/memory refresh` to force a re-scan and reload of all context files from all configured locations. This updates the AI's instructional context.
