@@ -6,10 +6,10 @@
 
 import { execSync, spawn } from 'child_process';
 
-export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim' | 'zed';
+export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim' | 'zed' | 'emacs';
 
 function isValidEditorType(editor: string): editor is EditorType {
-  return ['vscode', 'windsurf', 'cursor', 'vim', 'zed'].includes(editor);
+  return ['vscode', 'windsurf', 'cursor', 'vim', 'zed', 'emacs'].includes(editor);
 }
 
 interface DiffCommand {
@@ -35,6 +35,7 @@ const editorCommands: Record<EditorType, { win32: string; default: string }> = {
   cursor: { win32: 'cursor', default: 'cursor' },
   vim: { win32: 'vim', default: 'vim' },
   zed: { win32: 'zed', default: 'zed' },
+  emacs: { win32: 'emacs.exe', default: 'emacs' },
 };
 
 export function checkHasEditorType(editor: EditorType): boolean {
@@ -48,6 +49,10 @@ export function allowEditorTypeInSandbox(editor: EditorType): boolean {
   const notUsingSandbox = !process.env.SANDBOX;
   if (['vscode', 'windsurf', 'cursor', 'zed'].includes(editor)) {
     return notUsingSandbox;
+  }
+  // For terminal-based editors like vim and emacs, allow in sandbox.
+  if (['vim', 'emacs'].includes(editor)) {
+    return true;
   }
   return true;
 }
@@ -114,6 +119,11 @@ export function getDiffCommand(
           newPath,
         ],
       };
+      case 'emacs':
+      return {
+        command: 'emacs',
+        args: ['--eval', `(ediff "${oldPath}" "${newPath}")`],
+      };
     default:
       return null;
   }
@@ -161,7 +171,8 @@ export async function openDiff(
           });
         });
 
-      case 'vim': {
+      case 'vim':
+      case 'emacs': {
         // Use execSync for terminal-based editors
         const command =
           process.platform === 'win32'
