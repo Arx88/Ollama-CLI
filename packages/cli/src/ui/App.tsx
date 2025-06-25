@@ -342,6 +342,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       enteringConstrainHeightMode = true;
       setConstrainHeight(true);
 
+      let needsStaticRefresh = false;
       // If our pending history item happens to exceed the terminal height we will most likely need to refresh
       // our static collection to ensure no duplication or tearing. This is currently working around a core bug
       // in Ink which we have a PR out to fix: https://github.com/vadimdemedes/ink/pull/717
@@ -350,12 +351,27 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           pendingHistoryItemRef.current,
         );
         if (pendingItemDimensions.height > availableTerminalHeight) {
-          refreshStatic();
+          needsStaticRefresh = true;
         }
+      }
+      if (showErrorDetails) {
+        // Assume the error details view always takes up enough space when it is open to require a
+        // static refresh to close it.
+        needsStaticRefresh = true;
+      }
+
+      if (needsStaticRefresh) {
+        setStaticNeedsRefresh(false);
+        refreshStatic();
       }
     }
 
     if (key.ctrl && input === 'o') {
+      if (!showErrorDetails) {
+        setStaticNeedsRefresh(false);
+        refreshStatic();
+      }
+
       setShowErrorDetails((prev) => !prev);
     } else if (key.ctrl && input === 't') {
       const newValue = !showToolDescriptions;
