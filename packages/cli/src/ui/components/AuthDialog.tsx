@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
+import Link from 'ink-link';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
@@ -35,7 +36,7 @@ export function AuthDialog({
     },
     { label: 'Gemini API Key', value: AuthType.USE_GEMINI },
     {
-      label: 'Login with Google Workspace',
+      label: 'Login with Google (for Workspace or licensed Code Assist users)',
       value: AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE,
     },
     { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
@@ -112,6 +113,11 @@ export function AuthDialog({
       )}
       <Box marginTop={1}>
         <Text color={Colors.Gray}>(Use Enter to select)</Text>
+      </Box>
+      <Box marginTop={1}>
+        <Link url="https://github.com/google/gemini-cli/blob/main/docs/tos-privacy.md">
+          <Text>Terms of Services and Privacy Notice for Gemini CLI</Text>
+        </Link>
       </Box>
     </Box>
   );
