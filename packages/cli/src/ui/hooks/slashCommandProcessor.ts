@@ -227,6 +227,8 @@ export const useSlashCommandProcessor = (
           onDebugMessage('Clearing terminal and resetting chat.');
           clearItems();
           await config?.getGeminiClient()?.resetChat();
+          // Reset stats if the context implementation exposes the helper (added in fix for /clear)
+          session.resetStats?.();
           console.clear();
           refreshStatic();
         },

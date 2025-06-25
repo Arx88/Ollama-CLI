@@ -42,6 +42,12 @@ interface SessionStatsContextValue {
   addUsage: (
     metadata: GenerateContentResponseUsageMetadata & { apiTimeMs?: number },
   ) => void;
+  /**
+   * Fully resets all token counters (cumulative, currentTurn, currentResponse) as well as the
+   * session start time. This is primarily used by the /clear command so that the "context left"
+   * indicator in the footer immediately reflects the cleared state.
+   */
+  resetStats: () => void;
 }
 
 // --- Context Definition ---
@@ -175,13 +181,55 @@ export const SessionStatsProvider: React.FC<{ children: React.ReactNode }> = ({
     }));
   }, []);
 
+  /**
+   * Resets the entire stats object back to its initial state. We preserve the existing
+   * sessionStartTime because /clear is intended to wipe context, not necessarily denote a brand
+   * new session. If this behaviour needs to change in the future we can revisit it.
+   */
+  const resetStats = useCallback(() => {
+    setStats((prevState) => ({
+      ...prevState,
+      cumulative: {
+        turnCount: 0,
+        promptTokenCount: 0,
+        candidatesTokenCount: 0,
+        totalTokenCount: 0,
+        cachedContentTokenCount: 0,
+        toolUsePromptTokenCount: 0,
+        thoughtsTokenCount: 0,
+        apiTimeMs: 0,
+      },
+      currentTurn: {
+        turnCount: 0,
+        promptTokenCount: 0,
+        candidatesTokenCount: 0,
+        totalTokenCount: 0,
+        cachedContentTokenCount: 0,
+        toolUsePromptTokenCount: 0,
+        thoughtsTokenCount: 0,
+        apiTimeMs: 0,
+      },
+      currentResponse: {
+        turnCount: 0,
+        promptTokenCount: 0,
+        candidatesTokenCount: 0,
+        totalTokenCount: 0,
+        cachedContentTokenCount: 0,
+        toolUsePromptTokenCount: 0,
+        thoughtsTokenCount: 0,
+        apiTimeMs: 0,
+      },
+    }));
+  }, []);
+
   const value = useMemo(
     () => ({
       stats,
       startNewTurn,
       addUsage: aggregateTokens,
+      resetStats,
     }),
-    [stats, startNewTurn, aggregateTokens],
+    [stats, startNewTurn, aggregateTokens, resetStats],
   );
 
   return (

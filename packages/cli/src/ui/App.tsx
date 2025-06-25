@@ -99,7 +99,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleNewMessage,
     clearConsoleMessages: clearConsoleMessagesState,
   } = useConsoleMessages();
-  const { stats: sessionStats } = useSessionStats();
+  const { stats: sessionStats, resetStats } = useSessionStats();
   const [staticNeedsRefresh, setStaticNeedsRefresh] = useState(false);
   const [staticKey, setStaticKey] = useState(0);
   const refreshStatic = useCallback(() => {
@@ -482,9 +482,10 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const handleClearScreen = useCallback(() => {
     clearItems();
     clearConsoleMessagesState();
+    resetStats?.();
     console.clear();
     refreshStatic();
-  }, [clearItems, clearConsoleMessagesState, refreshStatic]);
+  }, [clearItems, clearConsoleMessagesState, resetStats, refreshStatic]);
 
   const mainControlsRef = useRef<DOMElement>(null);
   const pendingHistoryItemRef = useRef<DOMElement>(null);
