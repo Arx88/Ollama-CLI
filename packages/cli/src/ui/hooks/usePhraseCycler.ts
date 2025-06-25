@@ -44,7 +44,6 @@ export const WITTY_LOADING_PHRASES = [
   'Garbage collecting... be right back...',
   'Assembling the interwebs...',
   'Converting coffee into code...',
-  'Pushing to production (and hoping for the best)...',
   'Updating the syntax for reality...',
   'Rewiring the synapses...',
   'Looking for a misplaced semicolon...',
