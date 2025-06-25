@@ -67,6 +67,36 @@ export interface Settings {
   // Add other settings here.
 }
 
+// The allSettings `Record<keyof Settings, undefined>`,
+// ensures that any changes to the `Settings` interface will result in a
+// compile-time error if this object is not also updated.
+const allSettings: Record<keyof Settings, undefined> = {
+  theme: undefined,
+  selectedAuthType: undefined,
+  sandbox: undefined,
+  coreTools: undefined,
+  excludeTools: undefined,
+  toolDiscoveryCommand: undefined,
+  toolCallCommand: undefined,
+  mcpServerCommand: undefined,
+  mcpServers: undefined,
+  showMemoryUsage: undefined,
+  contextFileName: undefined,
+  accessibility: undefined,
+  telemetry: undefined,
+  usageStatisticsEnabled: undefined,
+  preferredEditor: undefined,
+  bugCommand: undefined,
+  checkpointing: undefined,
+  autoConfigureMaxOldSpaceSize: undefined,
+  fileFiltering: undefined,
+  hideWindowTitle: undefined,
+};
+
+export const validSettingKeys = Object.keys(allSettings) as Array<
+  keyof Settings
+>;
+
 export interface SettingsError {
   message: string;
   path: string;
@@ -171,6 +201,16 @@ function resolveEnvVarsInObject<T>(obj: T): T {
   return obj;
 }
 
+function validateSettings(
+  settings: Settings,
+  validKeys: Array<keyof Settings>,
+): string[] {
+  const invalidKeys = Object.keys(settings).filter(
+    (key) => !validKeys.includes(key as keyof Settings),
+  );
+  return invalidKeys;
+}
+
 /**
  * Loads settings from user and workspace directories.
  * Project settings override user settings.
@@ -187,6 +227,20 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
       const parsedUserSettings = JSON.parse(
         stripJsonComments(userContent),
       ) as Settings;
+
+      const invalidUserSettingsKeys = validateSettings(
+        parsedUserSettings,
+        validSettingKeys,
+      );
+      if (invalidUserSettingsKeys.length > 0) {
+        settingsErrors.push({
+          message: `Invalid settings found: ${invalidUserSettingsKeys.join(
+            ', ',
+          )}`,
+          path: USER_SETTINGS_PATH,
+        });
+      }
+
       userSettings = resolveEnvVarsInObject(parsedUserSettings);
       // Support legacy theme names
       if (userSettings.theme && userSettings.theme === 'VS') {
@@ -215,6 +269,20 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
       const parsedWorkspaceSettings = JSON.parse(
         stripJsonComments(projectContent),
       ) as Settings;
+
+      const invalidWorkspaceSettingsKeys = validateSettings(
+        parsedWorkspaceSettings,
+        validSettingKeys,
+      );
+      if (invalidWorkspaceSettingsKeys.length > 0) {
+        settingsErrors.push({
+          message: `Invalid settings found: ${invalidWorkspaceSettingsKeys.join(
+            ', ',
+          )}`,
+          path: workspaceSettingsPath,
+        });
+      }
+
       workspaceSettings = resolveEnvVarsInObject(parsedWorkspaceSettings);
       if (workspaceSettings.theme && workspaceSettings.theme === 'VS') {
         workspaceSettings.theme = DefaultLight.name;
