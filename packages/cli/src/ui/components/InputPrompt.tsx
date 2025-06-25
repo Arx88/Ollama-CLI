@@ -348,6 +348,21 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         return;
       }
 
+      if (key.meta && key.delete) {
+        buffer.deleteWordLeft();
+        return;
+      }
+
+      if (key.meta && key.leftArrow) {
+        buffer.move('wordLeft');
+        return;
+      }
+
+      if (key.meta && key.rightArrow) {
+        buffer.move('wordRight');
+        return;
+      }
+
       // Fallback to buffer's default input handling
       buffer.handleInput(input, key as Record<string, boolean>);
     },
