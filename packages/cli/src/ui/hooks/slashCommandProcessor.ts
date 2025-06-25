@@ -229,6 +229,11 @@ export const useSlashCommandProcessor = (
           await config?.getGeminiClient()?.resetChat();
           console.clear();
           refreshStatic();
+          addMessage({
+            type: MessageType.INFO,
+            content: 'Screen cleared. Model context has been reset.',
+            timestamp: new Date(),
+          });
         },
       },
       {
