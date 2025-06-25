@@ -78,6 +78,7 @@ export class MCPServerConfig {
     // Common
     readonly timeout?: number,
     readonly trust?: boolean,
+    readonly oauth?: boolean,
     // Metadata
     readonly description?: string,
   ) {}
