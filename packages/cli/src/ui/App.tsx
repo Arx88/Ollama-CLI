@@ -21,6 +21,7 @@ import { useTerminalSize } from './hooks/useTerminalSize.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
+import { useUsageStatsNotificationCommand } from './hooks/useUsageStatsNotificationCommand.js';
 import { useAuthCommand } from './hooks/useAuthCommand.js';
 import { useEditorSettings } from './hooks/useEditorSettings.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
@@ -32,6 +33,7 @@ import { AutoAcceptIndicator } from './components/AutoAcceptIndicator.js';
 import { ShellModeIndicator } from './components/ShellModeIndicator.js';
 import { InputPrompt } from './components/InputPrompt.js';
 import { Footer } from './components/Footer.js';
+import { UsageStatsNotificationDialog } from './components/UsageStatsNotificationDialog.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
 import { AuthDialog } from './components/AuthDialog.js';
 import { AuthInProgress } from './components/AuthInProgress.js';
@@ -133,6 +135,16 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     () => consoleMessages.filter((msg) => msg.type === 'error').length,
     [consoleMessages],
   );
+
+  const [showTelemetryOnboarding, setShowTelemetryOnboarding] = useState<boolean>(
+    settings.user.settings.usageStatisticsEnabled === undefined,
+  );
+
+  const {
+    isUsageStatsNotificationDialogOpen,
+    openUsageStatsNotificationDialog,
+    handleUsageStatsNotificationOptionSelect
+  } = useUsageStatsNotificationCommand(settings);
 
   const {
     isThemeDialogOpen,
@@ -267,6 +279,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     refreshStatic,
     setShowHelp,
     setDebugMessage,
+    openUsageStatsNotificationDialog,
     openThemeDialog,
     openAuthDialog,
     openEditorDialog,
@@ -659,8 +672,13 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               ))}
             </Box>
           )}
-
-          {isThemeDialogOpen ? (
+          {
+          isUsageStatsNotificationDialogOpen ? (
+        <UsageStatsNotificationDialog
+          onSelect={handleUsageStatsNotificationOptionSelect}
+          settings={settings}
+        />
+      ) : isThemeDialogOpen ? (
             <Box flexDirection="column">
               {themeError && (
                 <Box marginBottom={1}>
