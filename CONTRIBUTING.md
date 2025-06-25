@@ -198,7 +198,7 @@ This command uses Prettier to format the code according to the project's style g
 
 #### Linting
 
-To separately lint the code in this project, run the following command fro the root directory:
+To separately lint the code in this project, run the following command from the root directory:
 
 ```bash
 npm run lint
