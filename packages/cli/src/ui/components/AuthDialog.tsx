@@ -39,6 +39,7 @@ export function AuthDialog({
       value: AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE,
     },
     { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
+    { label: 'Portkey (Vertex AI via Portkey)', value: AuthType.USE_PORTKEY },
   ];
 
   const isSelectedAuthInMore = allAuthItems

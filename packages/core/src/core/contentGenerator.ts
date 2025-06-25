@@ -16,6 +16,7 @@ import {
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
 import { DEFAULT_GEMINI_MODEL } from '../config/models.js';
 import { getEffectiveModel } from './modelCheck.js';
+import { PortkeyContentGenerator } from './portkeyContentGenerator.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -39,6 +40,7 @@ export enum AuthType {
   LOGIN_WITH_GOOGLE_ENTERPRISE = 'oauth-enterprise',
   USE_GEMINI = 'gemini-api-key',
   USE_VERTEX_AI = 'vertex-ai',
+  USE_PORTKEY = 'portkey',
 }
 
 export type ContentGeneratorConfig = {
@@ -46,6 +48,13 @@ export type ContentGeneratorConfig = {
   apiKey?: string;
   vertexai?: boolean;
   authType?: AuthType | undefined;
+  portkey?: {
+    apiKey: string;
+    vertexAccessToken?: string;
+    vertexProjectId?: string;
+    vertexRegion?: string;
+    baseUrl?: string;
+  };
 };
 
 export async function createContentGeneratorConfig(
@@ -57,6 +66,11 @@ export async function createContentGeneratorConfig(
   const googleApiKey = process.env.GOOGLE_API_KEY;
   const googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT;
   const googleCloudLocation = process.env.GOOGLE_CLOUD_LOCATION;
+  const portkeyApiKey = process.env.PORTKEY_API_KEY;
+  const portkeyVertexAccessToken = process.env.PORTKEY_VERTEX_ACCESS_TOKEN || process.env.GEMINI_API_KEY;
+  const portkeyVertexProjectId = process.env.PORTKEY_VERTEX_PROJECT_ID;
+  const portkeyVertexRegion = process.env.PORTKEY_VERTEX_REGION;
+  const portkeyBaseUrl = process.env.PORTKEY_BASE_URL;
 
   // Use runtime model from config if available, otherwise fallback to parameter or default
   const effectiveModel = config?.getModel?.() || model || DEFAULT_GEMINI_MODEL;
@@ -106,6 +120,18 @@ export async function createContentGeneratorConfig(
     return contentGeneratorConfig;
   }
 
+  if (authType === AuthType.USE_PORTKEY && portkeyApiKey) {
+    contentGeneratorConfig.portkey = {
+      apiKey: portkeyApiKey,
+      vertexAccessToken: portkeyVertexAccessToken,
+      vertexProjectId: portkeyVertexProjectId,
+      vertexRegion: portkeyVertexRegion,
+      baseUrl: portkeyBaseUrl,
+    };
+
+    return contentGeneratorConfig;
+  }
+
   return contentGeneratorConfig;
 }
 
@@ -136,6 +162,10 @@ export async function createContentGenerator(
     });
 
     return googleGenAI.models;
+  }
+
+  if (config.authType === AuthType.USE_PORTKEY) {
+    return new PortkeyContentGenerator(config);
   }
 
   throw new Error(
