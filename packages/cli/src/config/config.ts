@@ -29,6 +29,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { loadSandboxConfig } from './sandboxConfig.js';
+import { logToFile } from '../utils/fileLogger.js';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -257,7 +258,9 @@ export async function loadCliConfig(
     // 2. settings.json (settings.ollamaModel)
     // 3. Environment variable (OLLAMA_MODEL)
     // 4. Core default (DEFAULT_OLLAMA_MODEL)
-    ollamaModel: argv.ollamaModel || settings.ollamaModel || process.env.OLLAMA_MODEL || DEFAULT_OLLAMA_MODEL,
+    const effectiveOllamaModel = argv.ollamaModel || settings.ollamaModel || process.env.OLLAMA_MODEL || DEFAULT_OLLAMA_MODEL;
+    logToFile(`[loadCliConfig] Effective Ollama Model selected: ${effectiveOllamaModel}`);
+    ollamaModel: effectiveOllamaModel,
     extensionContextFilePaths,
   });
 }
