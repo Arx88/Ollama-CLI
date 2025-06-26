@@ -262,7 +262,7 @@ describe('OllamaContentGenerator', () => {
           prompt: 'Embed this text',
         }),
       );
-      expect(result.embeddings?.values).toEqual([0.1, 0.2, 0.3, 0.4]); // Changed embedding to embeddings
+      expect(result.embeddings[0]?.values).toEqual([0.1, 0.2, 0.3, 0.4]);
     });
     it('should handle string content for embeddings', async () => {
       const geminiRequest: EmbedContentParameters = {
@@ -279,7 +279,7 @@ describe('OllamaContentGenerator', () => {
       expect(mockOllamaClient.embeddings).toHaveBeenCalledWith(
         expect.objectContaining({ prompt: 'Embed this string directly' }),
       );
-      expect(result.embeddings?.values).toEqual([0.5, 0.6]); // Changed embedding to embeddings
+      expect(result.embeddings[0]?.values).toEqual([0.5, 0.6]);
     });
 
     it('should throw if prompt text is empty for embeddings', async () => {
@@ -337,9 +337,11 @@ describe('OllamaContentGenerator', () => {
       expect(generator).toBeInstanceOf(OllamaContentGenerator);
       // expect(generator.modelName).toBe('ollama-model-from-cfg'); // modelName is private
       // Check if the OllamaClient mock constructor was called by createContentGenerator
-      expect(OllamaClient).toHaveBeenCalledTimes(1); // This might be more if other tests also create OllamaClient
+      // Adjusted to 2 because the global beforeEach also creates an instance
+      expect(OllamaClient).toHaveBeenCalledTimes(2);
       // This assertion checks that the OllamaClient constructor within createContentGenerator was called with the mockConfig
-      expect(OllamaClient).toHaveBeenCalledWith(mockConfig);
+      // The last call should be with mockConfig
+      expect(OllamaClient).toHaveBeenLastCalledWith(mockConfig);
     });
   });
 });

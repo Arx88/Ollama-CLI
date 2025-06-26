@@ -122,7 +122,7 @@ describe('OllamaClient', () => {
       );
 
       await expect(ollamaClient.listModels()).rejects.toThrow(
-        'Ollama API request failed: 500 Internal Server Error - Internal Server Error',
+        'Ollama API request failed: 500  - Internal Server Error',
       );
     });
   });
@@ -161,7 +161,7 @@ describe('OllamaClient', () => {
       await expect(
         ollamaClient.showModelDetails('nonexistent-model'),
       ).rejects.toThrow(
-        'Ollama API request failed: 404 Not Found - Model not found',
+         'Ollama API request failed: 404  - Model not found',
       );
     });
   });
@@ -342,7 +342,7 @@ describe('OllamaClient', () => {
         500,
       );
       await expect(ollamaClient.embeddings(embeddingsParams)).rejects.toThrow(
-        'Ollama API request failed: 500 Server error - Server error',
+        'Ollama API request failed: 500  - Server error',
       );
     });
   });
