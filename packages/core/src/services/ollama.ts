@@ -5,7 +5,7 @@
  */
 
 import { Config } from '../config/config.js';
-import { fetchWithRetry } from '../utils/fetch.js'; // Assuming a fetch utility
+import { fetchWithTimeout } from '../utils/fetch.js';
 
 // TODO: Define these more robustly, perhaps move to a types file
 interface OllamaListResponse {
@@ -66,7 +66,11 @@ export class OllamaClient {
       console.debug(`Ollama Request: ${method} ${url}`, body ? JSON.stringify(body, null, 2) : '');
     }
 
-    const response = await fetchWithRetry(url, options);
+    // Default timeout for Ollama requests, e.g., 30 seconds for non-streaming
+    // Streaming requests might need longer or different handling if fetchWithTimeout isn't ideal for streams.
+    // For now, using a relatively long timeout for all requests made via this.request
+    // The `generate` method uses fetchWithTimeout directly for more control over streaming.
+    const response = await fetchWithTimeout(url, 60000, options); // 60 second timeout
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -116,7 +120,13 @@ export class OllamaClient {
       console.debug(`Ollama Generate Request: POST ${url}`, JSON.stringify(params, null, 2));
     }
 
-    const response = await fetchWithRetry(url, options);
+    // For streaming, a very long timeout or no timeout via fetchWithTimeout might be preferable,
+    // as the stream duration is unknown. fetchWithTimeout will abort if the *total* request time
+    // (including all stream chunks) exceeds the timeout.
+    // If params.stream is true, we might consider using raw fetch or a very long timeout.
+    // For non-streaming, a reasonable timeout is good.
+    const timeout = params.stream ? 300000 : 60000; // 5 mins for stream, 1 min for non-stream
+    const response = await fetchWithTimeout(url, timeout, options);
 
     if (!response.ok) {
       const errorBody = await response.text();
