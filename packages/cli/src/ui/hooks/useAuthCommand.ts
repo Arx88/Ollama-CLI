@@ -24,105 +24,63 @@ async function performAuthFlow(
   if (authMethod === AuthType.USE_OLLAMA) {
     try {
       console.log('Performing Ollama authentication...');
-      const ollamaClient = new OllamaClient(config); // Assumes config can be passed
-      const availableModels = await ollamaClient.listModels();
-
-      if (availableModels.models.length === 0) {
-        setAuthError(
-          'No Ollama models found. Please ensure Ollama is running and models are installed.',
-        );
-        openAuthDialog(); // Re-open to allow choosing another method or retrying
-        return;
-      }
-
-      let preferredModelName =
-        settings.merged.ollamaModel || config.getOllamaModel();
-      let finalModelToUse: string | undefined = undefined;
-
-      if (availableModels.models.length === 0) {
-        setAuthError(
-          'No Ollama models found. Please ensure Ollama is running and models are installed.',
-        );
-        openAuthDialog(); // Re-open to allow choosing another method or retrying
-        return;
-      }
-
-      if (preferredModelName) {
-        // 1. Try exact match first
-        const exactMatch = availableModels.models.find(
-          (m) => m.name === preferredModelName,
-        );
-        if (exactMatch) {
-          finalModelToUse = exactMatch.name;
-        } else {
-          // 2. Try flexible match (prefix + ':' or direct match if preferredModelName already has a tag)
-          const flexibleMatches = availableModels.models.filter(
-            (m) =>
-              m.name === preferredModelName || // Case: preferredModelName already has tag
-              m.name.startsWith(preferredModelName + ':'), // Case: preferredModelName is base
-          );
-
-          if (flexibleMatches.length > 0) {
-            // Prefer a ':latest' tag if available among flexible matches
-            const latestTagMatch = flexibleMatches.find((m) =>
-              m.name.endsWith(':latest'),
-            );
-            if (latestTagMatch) {
-              finalModelToUse = latestTagMatch.name;
-            } else {
-              // Otherwise, use the first flexible match (e.g., model:tag123)
-              finalModelToUse = flexibleMatches[0].name;
-            }
-            console.log(
-              `Using Ollama model "${finalModelToUse}" based on preferred model "${preferredModelName}".`,
-            );
-          }
-        }
-      }
-
-      // 3. If no model could be determined from settings/config, or if the preferred model wasn't found
-      if (!finalModelToUse) {
-        if (preferredModelName) {
-          // Only log warning if a preferred model was set but not found after flexible search
-          console.warn(
-            `Preferred Ollama model "${preferredModelName}" not found among available models. Falling back.`,
-          );
-        }
-        // Fallback to the first model in the list (using its full name including tag)
-        finalModelToUse = availableModels.models[0].name;
-        console.log(
-          `Using first available Ollama model by default: ${finalModelToUse}`,
-        );
-      }
-
-      // Set the chosen model in the current session's config
-      config.setOllamaModel(finalModelToUse);
-      // Persist this choice in settings only if it came from fallback and no prior setting existed,
-      // OR if the flexible match resolved to a more specific name (e.g. with tag)
-      // This avoids overwriting a user's base model preference (e.g., "llama3") with "llama3:latest"
-      // unless it was the only way to resolve it.
-      // However, the current settings mechanism in useOllamaModelSelection already handles saving the user's explicit choice.
-      // So, we primarily ensure config is updated here for the session.
-      // If `performAuthFlow` is called *without* user interaction (e.g. initial load),
-      // and `settings.merged.ollamaModel` was empty, then `useOllamaModelSelection`'s dialog
-      // should subsequently open if `finalModelToUse` is set, allowing user to confirm/change.
-      // The main goal here is that `config.setOllamaModel` has the *actually usable* model name.
-      // This part of refreshAuth will need to be adapted for Ollama
-      // to correctly set up the content generator for an Ollama model.
-      await config.refreshAuth(authMethod);
-      console.log(`Authenticated via Ollama with model ${selectedModel}.`);
-      setAuthError(null); // Clear any previous auth errors
-    } catch (e) {
-      const errorMessage = getErrorMessage(e);
-      console.error('Ollama authentication failed:', errorMessage);
-      setAuthError(
-        `Ollama authentication failed: ${errorMessage}. Please ensure Ollama is running and accessible.`,
+      // For Ollama, the primary goal here is to confirm it's accessible.
+      // Model selection will be explicitly handled by OllamaModelDialog in App.tsx.
+      console.log(
+        '[useAuthCommand] Performing Ollama pre-authentication check...',
       );
-      openAuthDialog(); // Re-open to allow choosing another method or retrying
+      const ollamaClient = new OllamaClient(config);
+      try {
+        const availableModels = await ollamaClient.listModels();
+        if (availableModels.models.length === 0) {
+          setAuthError(
+            'No Ollama models found. Please ensure Ollama is running and models are installed.',
+          );
+          openAuthDialog(); // Re-open to allow choosing another method or retrying
+          return; // Stop further processing for Ollama here
+        }
+        // Success: Ollama is running and has models.
+        // No need to set a model here or call refreshAuth yet.
+        // App.tsx will trigger model selection dialog.
+        console.log(
+          '[useAuthCommand] Ollama is accessible and has models. Proceeding to model selection dialog via App.tsx.',
+        );
+        setAuthError(null); // Clear any previous auth errors for other methods.
+        // We don't call config.refreshAuth here for Ollama.
+        // It will be called in App.tsx after a model is explicitly selected.
+      } catch (e) {
+        const errorMessage = getErrorMessage(e);
+        console.error(
+          '[useAuthCommand] Ollama accessibility check failed:',
+          errorMessage,
+        );
+        setAuthError(
+          `Ollama check failed: ${errorMessage}. Please ensure Ollama is running and accessible.`,
+        );
+        openAuthDialog(); // Re-open to allow choosing another method or retrying
+      }
+    } else {
+      // For other auth methods, refreshAuth immediately.
+      await config.refreshAuth(authMethod);
+      console.log(`[useAuthCommand] Authenticated via "${authMethod}".`);
+      setAuthError(null); // Clear any previous auth errors
     }
-  } else {
-    await config.refreshAuth(authMethod);
-    console.log(`Authenticated via "${authMethod}".`);
+  } catch (e) {
+    // This outer catch is for errors during config.refreshAuth for non-Ollama methods,
+    // or any other unexpected errors within performAuthFlow.
+    const errorMessage = getErrorMessage(e);
+    console.error(
+      `[useAuthCommand] Authentication flow failed for ${authMethod}:`,
+      errorMessage,
+    );
+    setAuthError(
+      `Authentication failed for ${authMethod}: ${errorMessage}.`,
+    );
+    if (authMethod !== AuthType.USE_OLLAMA) {
+      // Only re-open auth dialog if it's not Ollama,
+      // as Ollama errors are handled within its specific try-catch.
+      openAuthDialog();
+    }
   }
 }
 
@@ -130,6 +88,9 @@ export const useAuthCommand = (
   settings: LoadedSettings,
   setAuthError: (error: string | null) => void,
   config: Config,
+  // Callback to signal that Ollama auth type was chosen and check was successful,
+  // so App.tsx can open the model selection dialog.
+  onOllamaAuthTypeSelectedAndChecked?: () => void,
 ) => {
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(
     settings.merged.selectedAuthType === undefined,
@@ -147,6 +108,40 @@ export const useAuthCommand = (
         return;
       }
 
+      // If Ollama is the selected type, we don't immediately authenticate further here.
+      // The selection itself is the "first step". App.tsx will handle opening the model dialog.
+      // performAuthFlow for Ollama will just do a pre-check.
+      if (settings.merged.selectedAuthType === AuthType.USE_OLLAMA) {
+        if (isAuthenticating) return; // Avoid re-triggering if already in pre-check
+        try {
+          setIsAuthenticating(true);
+          await performAuthFlow(
+            AuthType.USE_OLLAMA,
+            config,
+            settings, // settings is not strictly needed by performAuthFlow for Ollama anymore
+            openAuthDialog,
+            setAuthError,
+          );
+          // If performAuthFlow for Ollama was successful (it didn't throw or call openAuthDialog),
+          // it means Ollama is accessible. Now signal to open model dialog.
+          if (
+            settings.merged.selectedAuthType === AuthType.USE_OLLAMA &&
+            !isAuthDialogOpen // Ensure auth dialog is closed
+          ) {
+            onOllamaAuthTypeSelectedAndChecked?.();
+          }
+        } catch (e) {
+          // Should be caught by performAuthFlow's catch, but as a safeguard:
+          const errMsg = getErrorMessage(e);
+          setAuthError(`Ollama setup error: ${errMsg}`);
+          openAuthDialog();
+        } finally {
+          setIsAuthenticating(false);
+        }
+        return; // Stop here for Ollama, App.tsx takes over for model selection
+      }
+
+      // For other auth types, proceed with the original flow
       try {
         setIsAuthenticating(true);
         await performAuthFlow(
@@ -157,8 +152,6 @@ export const useAuthCommand = (
           setAuthError,
         );
       } catch (e) {
-        // This catch block might be redundant if performAuthFlow handles its own errors
-        // and calls setAuthError/openAuthDialog. However, keeping it for general errors.
         let errorMessage = `Failed to login.\nMessage: ${getErrorMessage(e)}`;
         if (
           settings.merged.selectedAuthType ===
@@ -177,18 +170,33 @@ export const useAuthCommand = (
     };
 
     void authFlow();
-  }, [isAuthDialogOpen, settings, config, setAuthError, openAuthDialog]);
+  }, [
+    isAuthDialogOpen,
+    settings,
+    config,
+    setAuthError,
+    openAuthDialog,
+    onOllamaAuthTypeSelectedAndChecked,
+    isAuthenticating, // Added isAuthenticating to dependencies
+  ]);
 
   const handleAuthSelect = useCallback(
     async (authMethod: string | undefined, scope: SettingScope) => {
       if (authMethod) {
+        const previousAuthType = settings.merged.selectedAuthType;
         await clearCachedCredentialFile();
         settings.setValue(scope, 'selectedAuthType', authMethod);
+        // If the method changed TO Ollama, or was already Ollama and re-selected
+        if (authMethod === AuthType.USE_OLLAMA) {
+          // No immediate authFlow call here. The useEffect will pick up the change
+          // in selectedAuthType and trigger the Ollama pre-check.
+          // This also means onOllamaAuthTypeSelectedAndChecked will be called by that useEffect.
+        }
       }
       setIsAuthDialogOpen(false);
-      setAuthError(null);
+      setAuthError(null); // Clear error when user makes a new selection or closes dialog
     },
-    [settings, setAuthError],
+    [settings, setAuthError], // Removed onOllamaAuthTypeSelectedAndChecked from here
   );
 
   const handleAuthHighlight = useCallback((_authMethod: string | undefined) => {

@@ -86,13 +86,13 @@ export function useOllamaModelSelection(
       logToFile(
         `[useOllamaModelSelection] Model selected in dialog: ${modelName}`,
       );
-      settings.setValue(SettingScope.User, 'ollamaModel', modelName);
+      // settings.setValue is now handled by the callback in App.tsx
       setIsOllamaModelDialogOpen(false);
       if (onModelSelected) {
-        onModelSelected(modelName); // Pass the selected model name
+        onModelSelected(modelName); // Pass the selected model name to App.tsx
       }
     },
-    [settings, onModelSelected],
+    [onModelSelected], // Removed settings from dependencies
   );
 
   const handleDialogClose = useCallback(() => {
