@@ -226,48 +226,68 @@ export class OllamaContentGenerator implements ContentGenerator {
     // Ollama doesn't have the same safety rating system as Gemini.
     // We'll return empty or default safety ratings.
     const safetyRatings: SafetyRating[] = [
-      // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
-      // Using HarmProbability.NEGLIGIBLE as a stand-in.
-      // This might need adjustment based on how BLOCK_NONE should be interpreted.
       {
         category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
         probability: HarmProbability.NEGLIGIBLE,
       },
     ];
 
-    const geminiResponse: GenerateContentResponse = {
-      candidates: [
-        {
-          content: {
-            parts: [], // Initialize parts as empty
-            role: 'model',
-          },
-          finishReason,
-          index: 0,
-          safetyRatings,
-          tokenCount: ollamaResponse.eval_count,
-        },
-      ],
-      promptFeedback: {
-        safetyRatings,
-      },
-    };
+    let text: string | undefined = undefined;
+    let parts: Array<import('@google/genai').Part> = [];
+    // functionCalls on the top-level GenerateContentResponse seems for specific summary,
+    // actual executable calls are in parts. Initialize as undefined per TS2739.
+    const topLevelFunctionCalls:
+      | Array<import('@google/genai').FunctionCall>
+      | undefined = undefined;
 
     if (ollamaResponse.tool_calls && ollamaResponse.tool_calls.length > 0) {
-      geminiResponse.candidates[0].content.functionCalls =
-        ollamaResponse.tool_calls.map((toolCall) => ({
+      parts = ollamaResponse.tool_calls.map((toolCall) => {
+        const functionCallValue: import('@google/genai').FunctionCall = {
           name: toolCall.function.name,
           args: toolCall.function.parameters,
-        }));
-      // If there are tool calls, the text content should be empty
-      geminiResponse.candidates[0].content.parts = [];
-      geminiResponse.text = undefined; // Clear text if tool calls are present
+        };
+        // Wrap the FunctionCall object in a Part object.
+        // This aligns with the structure where a Part can contain a functionCall.
+        return { functionCall: functionCallValue };
+      });
+      text = undefined; // No primary text if there are tool calls
     } else {
-      geminiResponse.candidates[0].content.parts = [
-        { text: ollamaResponse.response },
-      ];
-      geminiResponse.text = ollamaResponse.response;
+      parts = ollamaResponse.response
+        ? [{ text: ollamaResponse.response }]
+        : [];
+      text = ollamaResponse.response;
     }
+
+    // Ensure candidates array is always present with at least one candidate.
+    const candidates: Array<import('@google/genai').Candidate> = [
+      {
+        content: {
+          parts, // object-shorthand
+          role: 'model',
+        },
+        finishReason,
+        index: 0,
+        safetyRatings,
+        tokenCount: ollamaResponse.eval_count,
+        // citationMetadata, etc. are optional and can be omitted if not available
+      },
+    ];
+
+    const geminiResponse: GenerateContentResponse = {
+      candidates, // object-shorthand
+      promptFeedback: {
+        safetyRatings,
+        // blockReason, blockReasonMessage are optional
+      },
+      // Properties required by GenerateContentResponse type (TS2739)
+      text, // object-shorthand (text: text)
+      // SDKs might derive this from parts if parts are purely text.
+      // If parts contain non-text (like functionCalls), this should be undefined or empty.
+      functionCalls: topLevelFunctionCalls, // Correct as is, key and var name differ for clarity or necessity
+      data: undefined, // Initialize optional fields
+      executableCode: undefined, // Initialize optional fields
+      codeExecutionResult: undefined, // Initialize optional fields
+    };
 
     return geminiResponse;
   }
@@ -310,11 +330,17 @@ export class OllamaContentGenerator implements ContentGenerator {
         // a full candidate part in each yielded response or cumulative.
         // For simplicity, we'll yield cumulative text for now, but only the new part.
 
+        const currentText = ollamaChunk.response;
+        const currentParts: Array<import('@google/genai').Part> = currentText
+          ? [{ text: currentText }]
+          : [];
+
         const partialGeminiResponse: GenerateContentResponse = {
           candidates: [
+            // Assuming candidates itself should be Array<Candidate>
             {
               content: {
-                parts: [{ text: ollamaChunk.response }], // Text of the current chunk
+                parts: currentParts, // Using currentParts here
                 role: 'model',
               },
               finishReason: ollamaChunk.done
@@ -322,28 +348,28 @@ export class OllamaContentGenerator implements ContentGenerator {
                 : FinishReason.FINISH_REASON_UNSPECIFIED,
               index: 0,
               safetyRatings: [
-                // Default safety ratings
-                // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
-                // Using HarmProbability.NEGLIGIBLE as a stand-in.
                 {
                   category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
                   probability: HarmProbability.NEGLIGIBLE,
                 },
               ],
-              tokenCount: ollamaChunk.eval_count, // Tokens for this chunk if available
+              tokenCount: ollamaChunk.eval_count,
             },
           ],
           promptFeedback: {
-            // Placeholder
             safetyRatings: [
-              // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
-              // Using HarmProbability.NEGLIGIBLE as a stand-in.
               {
                 category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
                 probability: HarmProbability.NEGLIGIBLE,
               },
             ],
           },
+          // Initialize other required fields for GenerateContentResponse (TS2739)
+          text: currentText, // text is read-only
+          functionCalls: undefined,
+          data: undefined,
+          executableCode: undefined,
+          codeExecutionResult: undefined,
         };
         // NOTE: Tool calls are not typically handled per-chunk in a stream for Gemini.
         // Usually, tool calls are part of a complete response turn.
