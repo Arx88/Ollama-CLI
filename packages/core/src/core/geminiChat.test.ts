@@ -36,6 +36,14 @@ const mockConfig = {
   }),
   setModel: vi.fn(),
   flashFallbackHandler: undefined,
+  getModel: vi.fn(() => 'gemini-pro'),
+  getGeminiClient: vi.fn(() => ({
+    generateJson: vi.fn().mockResolvedValue({
+      result: {
+        model: 'gemini-pro',
+      },
+    }),
+  })),
 } as unknown as Config;
 
 describe('GeminiChat', () => {
