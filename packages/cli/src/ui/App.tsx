@@ -163,26 +163,6 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [settings.merged.selectedAuthType, openAuthDialog, setAuthError]);
 
-  // Effect to trigger Ollama model selection if Ollama auth is chosen and no model is set
-  useEffect(() => {
-    if (
-      settings.merged.selectedAuthType === AuthType.USE_OLLAMA && // AuthType needs to be imported
-      !isAuthDialogOpen && // Only run if AuthDialog is not open
-      !isOllamaModelDialogOpen && // And OllamaModelDialog is not already open
-      !settings.merged.ollamaModel // And no ollamaModel is already set in settings
-    ) {
-      // Potentially add a check here: if (config.getOllamaApiEndpoint()) to ensure it's configured
-      openOllamaModelDialog();
-    }
-  }, [
-    settings.merged.selectedAuthType,
-    settings.merged.ollamaModel,
-    isAuthDialogOpen,
-    isOllamaModelDialogOpen,
-    openOllamaModelDialog,
-    // config, // Add if config.getOllamaApiEndpoint() check is used
-  ]);
-
   const {
     isEditorDialogOpen,
     openEditorDialog,
@@ -205,6 +185,26 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     // For now, just logging or simple re-render might be enough as settings are updated.
     // A more robust solution might involve a way to signal config changes to GeminiClient.
   });
+
+  // Effect to trigger Ollama model selection if Ollama auth is chosen and no model is set
+  useEffect(() => {
+    if (
+      settings.merged.selectedAuthType === AuthType.USE_OLLAMA && // AuthType needs to be imported
+      !isAuthDialogOpen && // Only run if AuthDialog is not open
+      !isOllamaModelDialogOpen && // And OllamaModelDialog is not already open
+      !settings.merged.ollamaModel // And no ollamaModel is already set in settings
+    ) {
+      // Potentially add a check here: if (config.getOllamaApiEndpoint()) to ensure it's configured
+      openOllamaModelDialog();
+    }
+  }, [
+    settings.merged.selectedAuthType,
+    settings.merged.ollamaModel,
+    isAuthDialogOpen,
+    isOllamaModelDialogOpen,
+    openOllamaModelDialog,
+    // config, // Add if config.getOllamaApiEndpoint() check is used
+  ]);
 
   const toggleCorgiMode = useCallback(() => {
     setCorgiMode((prev) => !prev);

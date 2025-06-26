@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fetch from 'node-fetch'; // Assuming node-fetch is available or can be added
+// Assuming global fetch is available (Node 18+)
+// import fetch from 'node-fetch'; // Removed: node-fetch is not a direct dependency
 
 // Interfaces for Ollama API response
 interface OllamaModelDetails {

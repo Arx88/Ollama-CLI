@@ -75,8 +75,7 @@ export function OllamaModelDialog({
       <RadioButtonSelect
         items={items}
         initialIndex={initialIndex}
-        onSelect={(item) => onSelect(item.value)}
-        onCancel={onCancel} // Pass cancel if RadioButtonSelect supports it, or rely on useInput above
+        onSelect={onSelect}
         isFocused={true}
       />
       <Box marginTop={1}>
