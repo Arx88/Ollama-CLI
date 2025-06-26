@@ -259,6 +259,14 @@ export interface OllamaGenerateResponse {
   prompt_eval_duration?: number;
   eval_count?: number;
   eval_duration?: number;
+
+  // Added to support tool calling
+  tool_calls?: Array<{
+    function: {
+      name: string;
+      parameters: Record<string, unknown>; // Assuming parameters is a generic object
+    };
+  }>;
 }
 
 // Type definitions for Ollama Embeddings endpoint

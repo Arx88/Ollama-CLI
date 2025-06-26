@@ -12,7 +12,6 @@ import {
   EmbedContentResponse,
   EmbedContentParameters,
   GoogleGenAI,
-  FunctionCall,
 } from '@google/genai';
 import {
   FinishReason,
@@ -255,19 +254,25 @@ export class OllamaContentGenerator implements ContentGenerator {
     };
 
     if (ollamaResponse.tool_calls && ollamaResponse.tool_calls.length > 0) {
-      geminiResponse.candidates[0].content.functionCalls = ollamaResponse.tool_calls.map(toolCall => ({
-        name: toolCall.function.name,
-        args: toolCall.function.parameters,
-      }));
+      geminiResponse.candidates[0].content.functionCalls =
+        ollamaResponse.tool_calls.map((toolCall) => ({
+          name: toolCall.function.name,
+          args: toolCall.function.parameters,
+        }));
       // If there are tool calls, the text content should be empty
       geminiResponse.candidates[0].content.parts = [];
       geminiResponse.text = undefined; // Clear text if tool calls are present
     } else {
-      geminiResponse.candidates[0].content.parts = [{ text: ollamaResponse.response }];
+      geminiResponse.candidates[0].content.parts = [
+        { text: ollamaResponse.response },
+      ];
       geminiResponse.text = ollamaResponse.response;
     }
 
     return geminiResponse;
+  }
+
+  async generateContent(
     request: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
     const ollamaParams = this.paramsFromGeminiRequest(request);
@@ -339,38 +344,15 @@ export class OllamaContentGenerator implements ContentGenerator {
               },
             ],
           },
-          const geminiResponse: GenerateContentResponse = {
-      candidates: [
-        {
-          content: {
-            parts: [], // Initialize parts as empty
-            role: 'model',
-          },
-          finishReason,
-          index: 0,
-          safetyRatings,
-          tokenCount: ollamaResponse.eval_count,
-        },
-      ],
-      promptFeedback: {
-        safetyRatings,
-      },
-    };
+        };
+        // NOTE: Tool calls are not typically handled per-chunk in a stream for Gemini.
+        // Usually, tool calls are part of a complete response turn.
+        // If Ollama stream can include tool_calls in chunks before `done: true`,
+        // this logic might need adjustment. For now, assuming tool_calls are processed
+        // by responseToGeminiResponse on the final aggregated response if needed,
+        // or that streaming responses focus on text.
+        // The current `partialGeminiResponse` focuses on text parts.
 
-    if (ollamaResponse.tool_calls && ollamaResponse.tool_calls.length > 0) {
-      geminiResponse.candidates[0].content.functionCalls = ollamaResponse.tool_calls.map(toolCall => ({
-        name: toolCall.function.name,
-        args: toolCall.function.parameters,
-      }));
-      // If there are tool calls, the text content should be empty
-      geminiResponse.candidates[0].content.parts = [];
-      geminiResponse.text = undefined; // Clear text if tool calls are present
-    } else {
-      geminiResponse.candidates[0].content.parts = [{ text: ollamaResponse.response }];
-      geminiResponse.text = ollamaResponse.response;
-    }
-
-    return geminiResponse;
         yield partialGeminiResponse;
 
         if (ollamaChunk.done) {
