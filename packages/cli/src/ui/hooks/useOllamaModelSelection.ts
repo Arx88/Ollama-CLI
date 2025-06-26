@@ -17,6 +17,7 @@ export interface OllamaModelSelectionResult {
   errorLoadingModels: string | null;
   openOllamaModelDialog: () => Promise<void>;
   // handleModelSelect is internal to the hook now, triggered by dialog
+  onModelSelectedFromDialog: (modelName: string) => void;
   handleDialogClose: () => void;
 }
 
@@ -80,8 +81,8 @@ export function useOllamaModelSelection(
       setIsOllamaModelDialogOpen(false);
       // Potentially trigger a config reload or inform app that selection is made
       // For now, App.tsx will re-read settings on next interaction or if we force a refresh.
-      if (onSelectionComplete) {
-        onSelectionComplete(true);
+      if (onModelSelected) {
+        onModelSelected(modelName);
       }
     },
     [settings, onModelSelected], // Depends on onModelSelected now
