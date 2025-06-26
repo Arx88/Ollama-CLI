@@ -220,18 +220,17 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   useEffect(() => {
     if (
       settings.merged.selectedAuthType === AuthType.USE_OLLAMA &&
-      !isAuthDialogOpen && // Only run if AuthDialog is not open
-      !isOllamaModelDialogOpen // And OllamaModelDialog is not already open
-      // Condition !settings.merged.ollamaModel removed to allow re-selection
+      !settings.merged.ollamaModel &&
+      !isAuthDialogOpen &&
+      !isOllamaModelDialogOpen
     ) {
       openOllamaModelDialog();
     }
   }, [
-    settings.merged.selectedAuthType,
-    // settings.merged.ollamaModel, // Removed from dependency array
+    settings, // Use the whole settings object as a dependency
     isAuthDialogOpen,
     isOllamaModelDialogOpen,
-    openOllamaModelDialog,
+    openOllamaModelDialog
   ]);
 
   const toggleCorgiMode = useCallback(() => {
