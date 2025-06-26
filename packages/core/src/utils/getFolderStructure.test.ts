@@ -30,36 +30,79 @@ vi.mock('./gitUtils.js');
 // Import 'path' again here, it will be the mocked version
 import * as path from 'path';
 
-// Helper to create Dirent-like objects for mocking fs.readdir
-const createDirent = (name: string, type: 'file' | 'dir'): FSDirent => ({
-  name,
-  isFile: () => type === 'file',
-  isDirectory: () => type === 'dir',
-  isBlockDevice: () => false,
-  isCharacterDevice: () => false,
-  isSymbolicLink: () => false,
-  isFIFO: () => false,
-  isSocket: () => false,
-  path: '',
-  parentPath: '',
-});
+// Removed the old createDirent helper.
+// createDirentForTest will be the only helper.
+const createDirentForTest = (name: string, type: 'file' | 'dir', parentDir: string): FSDirent => {
+  const direntPath = nodePath.join(parentDir, name);
+  return {
+    name,
+    isFile: () => type === 'file',
+    isDirectory: () => type === 'dir',
+    isBlockDevice: () => false,
+    isCharacterDevice: () => false,
+    isSymbolicLink: () => false,
+    isFIFO: () => false,
+    isSocket: () => false,
+    // Add path and parentPath, and cast to satisfy the code expecting these,
+    // even if @types/node doesn't fully reflect them for FSDirent yet.
+    path: direntPath,
+    parentPath: parentDir,
+  } as FSDirent; // Cast to FSDirent. If errors persist, will use FSDirent & {path:string...}
+};
+
 
 describe('getFolderStructure', () => {
+  let mockFsStructure: Record<string, FSDirent[]> = {};
+
   beforeEach(() => {
     vi.resetAllMocks();
-
-    // path.resolve is now a vi.fn() due to the top-level vi.mock.
-    // We ensure its implementation is set for each test (or rely on the one from vi.mock).
-    // vi.resetAllMocks() clears call history but not the implementation set by vi.fn() in vi.mock.
-    // If we needed to change it per test, we would do it here:
     (path.resolve as Mock).mockImplementation((str: string) => str);
+    (path.join as Mock).mockImplementation((...args: string[]) => nodePath.join(...args)); // Ensure join is mocked if path is mocked
+    (path.normalize as Mock).mockImplementation((str: string) => nodePath.normalize(str));
 
-    // Re-apply/define the mock implementation for fsPromises.readdir for each test
+
+    // Initialize mockFsStructure here because createDirentForTest needs parentPath
+    mockFsStructure = {
+      '/testroot': [
+        createDirentForTest('file1.txt', 'file', '/testroot'),
+        createDirentForTest('subfolderA', 'dir', '/testroot'),
+        createDirentForTest('emptyFolder', 'dir', '/testroot'),
+        createDirentForTest('.hiddenfile', 'file', '/testroot'),
+        createDirentForTest('node_modules', 'dir', '/testroot'),
+      ],
+      '/testroot/subfolderA': [
+        createDirentForTest('fileA1.ts', 'file', '/testroot/subfolderA'),
+        createDirentForTest('fileA2.js', 'file', '/testroot/subfolderA'),
+        createDirentForTest('subfolderB', 'dir', '/testroot/subfolderA'),
+      ],
+      '/testroot/subfolderA/subfolderB': [createDirentForTest('fileB1.md', 'file', '/testroot/subfolderA/subfolderB')],
+      '/testroot/emptyFolder': [],
+      '/testroot/node_modules': [createDirentForTest('somepackage', 'dir', '/testroot/node_modules')],
+      '/testroot/manyFilesFolder': Array.from({ length: 10 }, (_, i) =>
+        createDirentForTest(`file-${i}.txt`, 'file', '/testroot/manyFilesFolder'),
+      ),
+      '/testroot/manyFolders': Array.from({ length: 5 }, (_, i) =>
+        createDirentForTest(`folder-${i}`, 'dir', '/testroot/manyFolders'),
+      ),
+      ...Array.from({ length: 5 }, (_, i) => {
+        const parent = `/testroot/manyFolders/folder-${i}`;
+        return {
+          [parent]: [
+            createDirentForTest('child.txt', 'file', parent),
+          ],
+        };
+      }).reduce((acc, val) => ({ ...acc, ...val }), {}),
+      '/testroot/deepFolders': [createDirentForTest('level1', 'dir', '/testroot/deepFolders')],
+      '/testroot/deepFolders/level1': [createDirentForTest('level2', 'dir', '/testroot/deepFolders/level1')],
+      '/testroot/deepFolders/level1/level2': [createDirentForTest('level3', 'dir', '/testroot/deepFolders/level1/level2')],
+      '/testroot/deepFolders/level1/level2/level3': [
+        createDirentForTest('file.txt', 'file', '/testroot/deepFolders/level1/level2/level3'),
+      ],
+    };
+
     (fsPromises.readdir as Mock).mockImplementation(
       async (dirPath: string | Buffer | URL) => {
-        // path.normalize here will use the mocked path module.
-        // Since normalize is spread from original, it should be the real one.
-        const normalizedPath = path.normalize(dirPath.toString());
+        const normalizedPath = nodePath.normalize(dirPath.toString()); // Use actual nodePath
         if (mockFsStructure[normalizedPath]) {
           return mockFsStructure[normalizedPath];
         }
@@ -74,43 +117,8 @@ describe('getFolderStructure', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks(); // Restores spies (like fsPromises.readdir) and resets vi.fn mocks (like path.resolve)
+    vi.restoreAllMocks();
   });
-
-  const mockFsStructure: Record<string, FSDirent[]> = {
-    '/testroot': [
-      createDirent('file1.txt', 'file'),
-      createDirent('subfolderA', 'dir'),
-      createDirent('emptyFolder', 'dir'),
-      createDirent('.hiddenfile', 'file'),
-      createDirent('node_modules', 'dir'),
-    ],
-    '/testroot/subfolderA': [
-      createDirent('fileA1.ts', 'file'),
-      createDirent('fileA2.js', 'file'),
-      createDirent('subfolderB', 'dir'),
-    ],
-    '/testroot/subfolderA/subfolderB': [createDirent('fileB1.md', 'file')],
-    '/testroot/emptyFolder': [],
-    '/testroot/node_modules': [createDirent('somepackage', 'dir')],
-    '/testroot/manyFilesFolder': Array.from({ length: 10 }, (_, i) =>
-      createDirent(`file-${i}.txt`, 'file'),
-    ),
-    '/testroot/manyFolders': Array.from({ length: 5 }, (_, i) =>
-      createDirent(`folder-${i}`, 'dir'),
-    ),
-    ...Array.from({ length: 5 }, (_, i) => ({
-      [`/testroot/manyFolders/folder-${i}`]: [
-        createDirent('child.txt', 'file'),
-      ],
-    })).reduce((acc, val) => ({ ...acc, ...val }), {}),
-    '/testroot/deepFolders': [createDirent('level1', 'dir')],
-    '/testroot/deepFolders/level1': [createDirent('level2', 'dir')],
-    '/testroot/deepFolders/level1/level2': [createDirent('level3', 'dir')],
-    '/testroot/deepFolders/level1/level2/level3': [
-      createDirent('file.txt', 'file'),
-    ],
-  };
 
   it('should return basic folder structure', async () => {
     const structure = await getFolderStructure('/testroot/subfolderA');
@@ -289,22 +297,22 @@ describe('getFolderStructure gitignore', () => {
     (path.resolve as Mock).mockImplementation((str: string) => str);
 
     (fsPromises.readdir as Mock).mockImplementation(async (p) => {
-      const path = p.toString();
-      if (path === '/test/project') {
+      const dirPath = p.toString();
+      if (dirPath === '/test/project') {
         return [
-          createDirent('file1.txt', 'file'),
-          createDirent('node_modules', 'dir'),
-          createDirent('ignored.txt', 'file'),
-          createDirent('.gemini', 'dir'),
+          createDirentForTest('file1.txt', 'file', dirPath),
+          createDirentForTest('node_modules', 'dir', dirPath),
+          createDirentForTest('ignored.txt', 'file', dirPath),
+          createDirentForTest('.gemini', 'dir', dirPath),
         ] as any;
       }
-      if (path === '/test/project/node_modules') {
-        return [createDirent('some-package', 'dir')] as any;
+      if (dirPath === '/test/project/node_modules') {
+        return [createDirentForTest('some-package', 'dir', dirPath)] as any;
       }
-      if (path === '/test/project/.gemini') {
+      if (dirPath === '/test/project/.gemini') {
         return [
-          createDirent('config.yaml', 'file'),
-          createDirent('logs.json', 'file'),
+          createDirentForTest('config.yaml', 'file', dirPath),
+          createDirentForTest('logs.json', 'file', dirPath),
         ] as any;
       }
       return [];
