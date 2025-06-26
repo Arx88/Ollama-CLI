@@ -68,8 +68,8 @@ async function parseArguments(): Promise<CliArgs> {
     .option('ollamaModel', {
       alias: 'om',
       type: 'string',
-      description: 'Ollama Model',
-      default: process.env.OLLAMA_MODEL || DEFAULT_OLLAMA_MODEL,
+      description: 'Ollama Model (e.g., llama3, gemma:latest). Overrides settings.json and OLLAMA_MODEL env var.',
+      // Default will be handled explicitly in loadCliConfig to allow settings.json to override env var
     })
     .option('prompt', {
       alias: 'p',
@@ -252,7 +252,12 @@ export async function loadCliConfig(
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
     model: argv.model!,
-    ollamaModel: argv.ollamaModel!,
+    // Determine effectiveOllamaModel with desired precedence:
+    // 1. CLI arg (--ollamaModel)
+    // 2. settings.json (settings.ollamaModel)
+    // 3. Environment variable (OLLAMA_MODEL)
+    // 4. Core default (DEFAULT_OLLAMA_MODEL)
+    ollamaModel: argv.ollamaModel || settings.ollamaModel || process.env.OLLAMA_MODEL || DEFAULT_OLLAMA_MODEL,
     extensionContextFilePaths,
   });
 }
