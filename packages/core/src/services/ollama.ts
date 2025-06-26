@@ -264,7 +264,7 @@ export interface OllamaGenerateResponse {
   tool_calls?: Array<{
     function: {
       name: string;
-      parameters: Record<string, unknown>; // Assuming parameters is a generic object
+      parameters: Record<string, unknown>;
     };
   }>;
 }
