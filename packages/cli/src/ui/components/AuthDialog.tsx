@@ -48,7 +48,9 @@ export function AuthDialog({
   }
 
   const handleAuthSelect = (authMethod: string) => {
+    console.log(`[AuthDialog] handleAuthSelect called with authMethod: ${authMethod}`);
     const error = validateAuthMethod(authMethod);
+    console.log(`[AuthDialog] validateAuthMethod returned: ${error}`);
     if (error) {
       setErrorMessage(error);
     } else {
