@@ -68,6 +68,7 @@ export class GeminiClient {
   async initialize(contentGeneratorConfig: ContentGeneratorConfig) {
     this.contentGenerator = await createContentGenerator(
       contentGeneratorConfig,
+      this.config, // Pass the main Config object
     );
     this.chat = await this.startChat();
   }

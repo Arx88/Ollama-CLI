@@ -38,6 +38,7 @@ import {
 import {
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   DEFAULT_GEMINI_FLASH_MODEL,
+  DEFAULT_OLLAMA_MODEL,
 } from './models.js';
 import { ClearcutLogger } from '../telemetry/clearcut-logger/clearcut-logger.js';
 
@@ -125,6 +126,7 @@ export interface ConfigParameters {
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
   model: string;
+  ollamaModel?: string;
   extensionContextFilePaths?: string[];
 }
 
@@ -163,6 +165,7 @@ export class Config {
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
+  private ollamaModel: string | undefined;
   private readonly extensionContextFilePaths: string[];
   private modelSwitchedDuringSession: boolean = false;
   flashFallbackHandler?: FlashFallbackHandler;
@@ -206,6 +209,7 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
+    this.ollamaModel = params.ollamaModel;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
 
     if (params.contextFileName) {
@@ -246,11 +250,24 @@ export class Config {
       this,
     );
 
-    const gc = new GeminiClient(this);
-    this.geminiClient = gc;
+    // The GeminiClient might not be appropriate for Ollama.
+    // We need to conditionally create and initialize the right client/generator.
+    if (authMethod === AuthType.USE_OLLAMA) {
+      // For Ollama, contentGeneratorConfig is already prepared by createContentGeneratorConfig
+      // And GeminiClient.initialize will call createContentGenerator internally.
+      // We need to ensure createContentGenerator in client.ts also gets the main config.
+      this.contentGeneratorConfig = contentConfig;
+       // gc.initialize will call createContentGenerator(contentConfig, this)
+      const gc = new GeminiClient(this); // GeminiClient itself might need authType later
+      this.geminiClient = gc;
+      await gc.initialize(contentConfig); // This will create OllamaContentGenerator via createContentGenerator
+    } else {
+      const gc = new GeminiClient(this);
+      this.geminiClient = gc;
+      await gc.initialize(contentConfig); // For Gemini/Vertex, this is fine
+      this.contentGeneratorConfig = contentConfig;
+    }
     this.toolRegistry = await createToolRegistry(this);
-    await gc.initialize(contentConfig);
-    this.contentGeneratorConfig = contentConfig;
 
     // Reset the session flag since we're explicitly changing auth and using default model
     this.modelSwitchedDuringSession = false;
@@ -267,13 +284,26 @@ export class Config {
   }
 
   getModel(): string {
-    return this.contentGeneratorConfig?.model || this.model;
+    return this.contentGeneratorConfig?.model || this.model; // TODO: consider Ollama model
   }
 
   setModel(newModel: string): void {
+    // TODO: This might need to differentiate between Gemini and Ollama models
     if (this.contentGeneratorConfig) {
       this.contentGeneratorConfig.model = newModel;
       this.modelSwitchedDuringSession = true;
+    }
+  }
+
+  getOllamaModel(): string | undefined {
+    return this.ollamaModel;
+  }
+
+  setOllamaModel(newModel: string): void {
+    this.ollamaModel = newModel;
+    // Potentially update contentGeneratorConfig if it's Ollama specific
+    if (this.contentGeneratorConfig?.authType === AuthType.USE_OLLAMA) {
+      this.contentGeneratorConfig.model = newModel;
     }
   }
 
