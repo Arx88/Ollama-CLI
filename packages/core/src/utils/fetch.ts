@@ -36,22 +36,40 @@ export function isPrivateIp(url: string): boolean {
   }
 }
 
-export async function fetchWithTimeout(
+// Renaming to fetchWithRetry to match OllamaClient's expectation.
+// Actual retry logic is not implemented here yet.
+export async function fetchWithRetry(
   url: string,
-  timeout: number,
+  options?: RequestInit, // Added options to be compatible with typical fetch usage
+  timeout = 10000, // Default timeout, can be overridden by options.signal
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  let timeoutId: NodeJS.Timeout | undefined;
+
+  // If a signal is provided in options, prefer it. Otherwise, use our timeout.
+  const signal = options?.signal ?? controller.signal;
+  if (!options?.signal) {
+    timeoutId = setTimeout(() => controller.abort(), timeout);
+  }
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    // Pass through all options to fetch
+    const response = await fetch(url, { ...options, signal });
     return response;
   } catch (error) {
     if (isNodeError(error) && error.code === 'ABORT_ERR') {
-      throw new FetchError(`Request timed out after ${timeout}ms`, 'ETIMEDOUT');
+      // Distinguish between external abort and our timeout
+      if (timeoutId && controller.signal.aborted) {
+         throw new FetchError(`Request timed out after ${timeout}ms`, 'ETIMEDOUT');
+      }
+      // If aborted by external signal, rethrow preserving original error if possible
+      // or a generic abort error.
+      throw new FetchError(getErrorMessage(error) || 'Request aborted', 'ABORT_ERR');
     }
     throw new FetchError(getErrorMessage(error));
   } finally {
-    clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
