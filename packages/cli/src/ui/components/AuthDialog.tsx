@@ -12,6 +12,7 @@ import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { AuthType } from '@google/gemini-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
+import { logToFile } from '../../utils/fileLogger.js';
 
 interface AuthDialogProps {
   onSelect: (authMethod: string | undefined, scope: SettingScope) => void;
@@ -48,9 +49,9 @@ export function AuthDialog({
   }
 
   const handleAuthSelect = (authMethod: string) => {
-    console.log(`[AuthDialog] handleAuthSelect called with authMethod: ${authMethod}`);
+    logToFile(`[AuthDialog] handleAuthSelect called with authMethod: ${authMethod}`);
     const error = validateAuthMethod(authMethod);
-    console.log(`[AuthDialog] validateAuthMethod returned: ${error}`);
+    logToFile(`[AuthDialog] validateAuthMethod returned: ${error === null ? 'null' : error}`);
     if (error) {
       setErrorMessage(error);
     } else {
