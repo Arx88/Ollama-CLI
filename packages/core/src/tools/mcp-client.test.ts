@@ -279,10 +279,10 @@ describe('discoverMcpTools', () => {
     const mockFuncDecl = {
       name: 'authed-tool',
       description: 'An authenticated tool',
-      parameters: { type: 'object' as const, properties: {} },
+      inputSchema: { type: 'object' as const, properties: {} },
     };
-    mockCallableTool.tool.mockResolvedValue({
-      functionDeclarations: [mockFuncDecl],
+    vi.mocked(Client.prototype.listTools).mockResolvedValue({
+      tools: [mockFuncDecl],
     });
 
     mockToolRegistry.getToolsByServer.mockReturnValueOnce([
