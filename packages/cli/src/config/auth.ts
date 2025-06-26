@@ -8,15 +8,20 @@ import { AuthType } from '@google/gemini-cli-core';
 import { loadEnvironment } from './config.js';
 
 export const validateAuthMethod = (authMethod: string): string | null => {
+  console.log(`[validateAuthMethod] Received authMethod: ${authMethod}`);
   loadEnvironment();
   if (authMethod === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
+    console.log('[validateAuthMethod] Returning null for LOGIN_WITH_GOOGLE_PERSONAL');
     return null;
   }
 
   if (authMethod === AuthType.USE_GEMINI) {
     if (!process.env.GEMINI_API_KEY) {
-      return 'GEMINI_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
+      const errorMsg = 'GEMINI_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
+      console.log(`[validateAuthMethod] Returning error for USE_GEMINI: ${errorMsg}`);
+      return errorMsg;
     }
+    console.log('[validateAuthMethod] Returning null for USE_GEMINI');
     return null;
   }
 
@@ -25,19 +30,23 @@ export const validateAuthMethod = (authMethod: string): string | null => {
       !!process.env.GOOGLE_CLOUD_PROJECT && !!process.env.GOOGLE_CLOUD_LOCATION;
     const hasGoogleApiKey = !!process.env.GOOGLE_API_KEY;
     if (!hasVertexProjectLocationConfig && !hasGoogleApiKey) {
-      return (
+      const errorMsg =
         'Must specify GOOGLE_GENAI_USE_VERTEXAI=true and either:\n' +
         '• GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION environment variables.\n' +
         '• GOOGLE_API_KEY environment variable (if using express mode).\n' +
-        'Update your .env and try again, no reload needed!'
-      );
+        'Update your .env and try again, no reload needed!';
+      console.log(`[validateAuthMethod] Returning error for USE_VERTEX_AI: ${errorMsg}`);
+      return errorMsg;
     }
+    console.log('[validateAuthMethod] Returning null for USE_VERTEX_AI');
     return null;
   }
 
   if (authMethod === AuthType.USE_OLLAMA) {
+    console.log('[validateAuthMethod] Returning null for USE_OLLAMA');
     return null; // Ollama runs locally, no specific auth validation needed here.
   }
 
+  console.log('[validateAuthMethod] Returning "Invalid auth method selected."');
   return 'Invalid auth method selected.';
 };
