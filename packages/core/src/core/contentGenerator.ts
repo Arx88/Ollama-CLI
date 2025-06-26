@@ -18,6 +18,7 @@ import {
   HarmBlockThreshold,
   HarmCategory,
   SafetyRating,
+  HarmProbability, // Added HarmProbability import
 } from '@google/genai';
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
 import { DEFAULT_GEMINI_MODEL } from '../config/models.js';
@@ -129,7 +130,7 @@ export async function createContentGeneratorConfig(
 // Placeholder for Ollama Content Generator
 // This would need to implement the ContentGenerator interface
 // and interact with the Ollama API (likely via OllamaClient).
-class OllamaContentGenerator implements ContentGenerator {
+export class OllamaContentGenerator implements ContentGenerator { // Added export here
   private readonly modelName: string;
   private readonly ollamaClient: OllamaClient;
   private currentContext: number[] | undefined; // To store context for conversational turns
@@ -150,15 +151,23 @@ class OllamaContentGenerator implements ContentGenerator {
     // TODO: More sophisticated mapping, especially for 'contents' (multi-turn chat history)
     // For now, concatenate text parts from the last user message.
     let promptText = '';
-    if (request.contents && request.contents.length > 0) {
-      const lastContent = request.contents[request.contents.length - 1];
-      promptText = lastContent.parts
-        .map((part) => ('text' in part ? part.text : ''))
-        .join(' ');
+    if (Array.isArray(request.contents) && request.contents.length > 0) {
+      const lastContentItem = request.contents[request.contents.length - 1]; // Type: string | Content
+      // Ensure lastContentItem is a Content object (has 'role' and 'parts')
+      if (typeof lastContentItem !== 'string' && 'parts' in lastContentItem && Array.isArray(lastContentItem.parts)) {
+        promptText = lastContentItem.parts
+          .map((part: import('@google/genai').Part) => part.text || '')
+          .join(' ');
+      }
     }
+    // No direct handling for request.contents being a single Content object here,
+    // but other functions (countTokens, embedContent) might need it.
+    // This function seems to assume request.contents is always an array for multi-turn.
 
     // Simplistic mapping for generationConfig - Ollama options are different
+    // Simplistic mapping for generationConfig - Ollama options are different
     const options: Record<string, unknown> = {};
+    // THIS IS THE FINAL ATTEMPT: Accessing via request.generationConfig
     if (request.generationConfig?.temperature !== undefined) {
       options.temperature = request.generationConfig.temperature;
     }
@@ -168,7 +177,6 @@ class OllamaContentGenerator implements ContentGenerator {
     if (request.generationConfig?.topK !== undefined) {
       options.top_k = request.generationConfig.topK;
     }
-    // maxOutputTokens might map to num_predict or similar in Ollama
     if (request.generationConfig?.maxOutputTokens !== undefined) {
       options.num_predict = request.generationConfig.maxOutputTokens;
     }
@@ -214,11 +222,20 @@ class OllamaContentGenerator implements ContentGenerator {
     // Ollama doesn't have the same safety rating system as Gemini.
     // We'll return empty or default safety ratings.
     const safetyRatings: SafetyRating[] = [
-      { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmBlockThreshold.BLOCK_NONE },
+      // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
+      // Using HarmProbability.NEGLIGIBLE as a stand-in.
+      // This might need adjustment based on how BLOCK_NONE should be interpreted.
+      { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmProbability.NEGLIGIBLE },
     ];
 
 
     return {
+      // text, functionCalls etc. are properties of GenerateContentResponse, not methods
+      text: ollamaResponse.response,
+      functionCalls: undefined,
+      executableCode: undefined,
+      codeExecutionResult: undefined,
+      data: "", // Changed to empty string
       candidates: [
         {
           content: {
@@ -297,16 +314,26 @@ class OllamaContentGenerator implements ContentGenerator {
                 : FinishReason.FINISH_REASON_UNSPECIFIED,
               index: 0,
               safetyRatings: [ // Default safety ratings
-                { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmBlockThreshold.BLOCK_NONE },
+                // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
+                // Using HarmProbability.NEGLIGIBLE as a stand-in.
+                { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmProbability.NEGLIGIBLE },
               ],
               tokenCount: ollamaChunk.eval_count, // Tokens for this chunk if available
             },
           ],
           promptFeedback: { // Placeholder
             safetyRatings: [
-              { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmBlockThreshold.BLOCK_NONE },
+                // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
+                // Using HarmProbability.NEGLIGIBLE as a stand-in.
+              { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmProbability.NEGLIGIBLE },
             ],
           },
+          // text, functionCalls etc. are properties of GenerateContentResponse, not methods
+          text: ollamaChunk.response,
+          functionCalls: undefined,
+          executableCode: undefined,
+          codeExecutionResult: undefined,
+          data: "", // Changed to empty string
         };
         yield partialGeminiResponse;
 
@@ -350,19 +377,31 @@ class OllamaContentGenerator implements ContentGenerator {
     //    which are token counts, but that requires actually making a generation call.
 
     let numChars = 0;
-    if (Array.isArray(request.contents)) {
-      request.contents.forEach(content => {
-        content.parts.forEach(part => {
-          if ('text' in part) {
-            numChars += part.text.length;
-          }
-          // TODO: Handle other part types if necessary for token counting
-        });
-      });
-    } else if (typeof request.contents === 'string') { // Assuming CountTokensParameters can also be a string
+    if (typeof request.contents === 'string') {
       numChars = request.contents.length;
+    } else if (Array.isArray(request.contents)) { // request.contents is Array<string | Content>
+      request.contents.forEach(contentItem => { // contentItem is string | Content
+        // Ensure contentItem is a Content object
+        if (typeof contentItem !== 'string' && 'parts' in contentItem && Array.isArray(contentItem.parts)) {
+          contentItem.parts.forEach((part: import('@google/genai').Part) => {
+            if (part.text && typeof part.text === 'string') {
+              numChars += part.text.length;
+            }
+          });
+        } else if (typeof contentItem === 'string') {
+          // This case should ideally not happen if CountTokensParameters expects Content objects for array items
+          // but handling it defensively if request.contents can be Array<string>
+           numChars += contentItem.length;
+        }
+      });
+    } else if (request.contents && typeof request.contents !== 'string' && 'parts' in request.contents && Array.isArray(request.contents.parts)) {
+      // Handle single Content object (request.contents is Content)
+      request.contents.parts.forEach((part: import('@google/genai').Part) => {
+        if (part.text && typeof part.text === 'string') {
+          numChars += part.text.length;
+        }
+      });
     }
-
 
     // Extremely rough heuristic: average 3-4 characters per token. Let's use 3.5.
     // This is NOT accurate and should be replaced if a better method is found.
@@ -383,11 +422,23 @@ class OllamaContentGenerator implements ContentGenerator {
     // Extract prompt from EmbedContentParameters
     // Similar to generateContent, this is a simplified extraction
     let promptText = '';
-    if (typeof request.content === 'string') {
-      promptText = request.content;
-    } else if (request.content.parts && request.content.parts.length > 0) {
-      promptText = request.content.parts
-        .map((part) => ('text' in part ? part.text : ''))
+    if (typeof request.contents === 'string') {
+      promptText = request.contents;
+    } else if (Array.isArray(request.contents)) { // request.contents is Array<string | Content>
+      // Handle array of Content objects, taking the last one
+      const lastContentItem = request.contents[request.contents.length - 1]; // lastContentItem is string | Content
+      // Ensure lastContentItem is a Content object
+      if (typeof lastContentItem !== 'string' && 'parts' in lastContentItem && Array.isArray(lastContentItem.parts)) {
+        promptText = lastContentItem.parts
+          .map((part: import('@google/genai').Part) => part.text || '')
+          .join(' ');
+      }
+      // If lastContentItem is a string, it's not directly handled here for promptText from an array.
+      // The original logic seemed to imply only Content objects with parts contribute to promptText from an array.
+    } else if (request.contents && typeof request.contents !== 'string' && 'parts' in request.contents && Array.isArray(request.contents.parts)) {
+      // Handle single Content object (request.contents is Content)
+      promptText = request.contents.parts
+        .map((part: import('@google/genai').Part) => part.text || '')
         .join(' ');
     }
 

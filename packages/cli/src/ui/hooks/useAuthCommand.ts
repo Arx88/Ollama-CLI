@@ -7,8 +7,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import {
-  AuthType,
-  AuthType,
+  AuthType, // Remove one of the duplicate AuthType imports
   Config,
   clearCachedCredentialFile,
   getErrorMessage,

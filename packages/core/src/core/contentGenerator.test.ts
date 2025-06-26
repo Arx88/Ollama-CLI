@@ -18,10 +18,22 @@ describe('contentGenerator', () => {
     vi.mocked(createCodeAssistContentGenerator).mockResolvedValue(
       mockGenerator as never,
     );
-    const generator = await createContentGenerator({
-      model: 'test-model',
-      authType: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
-    });
+    // Mock the Config class that createContentGenerator might use internally
+    const mockConfigInstance = {
+      getOllamaModel: vi.fn().mockReturnValue('default-ollama-model'),
+      // Add other methods from Config that might be called by createContentGenerator
+    };
+    vi.mock('../config/config.js', () => ({
+      Config: vi.fn(() => mockConfigInstance)
+    }));
+
+    const generator = await createContentGenerator(
+      {
+        model: 'test-model',
+        authType: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
+      },
+      mockConfigInstance as any // Pass the mocked config instance
+    );
     expect(createCodeAssistContentGenerator).toHaveBeenCalled();
     expect(generator).toBe(mockGenerator);
   });
@@ -31,11 +43,22 @@ describe('contentGenerator', () => {
       models: {},
     } as unknown;
     vi.mocked(GoogleGenAI).mockImplementation(() => mockGenerator as never);
-    const generator = await createContentGenerator({
-      model: 'test-model',
-      apiKey: 'test-api-key',
-      authType: AuthType.USE_GEMINI,
-    });
+    // Mock the Config class that createContentGenerator might use internally
+    const mockConfigInstance = {
+      getOllamaModel: vi.fn().mockReturnValue('default-ollama-model'),
+      // Add other methods from Config that might be called by createContentGenerator
+    };
+    // No need to re-mock Config if it's already mocked at the top level or per test suite
+    // Ensure the mock is effective for this test case too.
+
+    const generator = await createContentGenerator(
+      {
+        model: 'test-model',
+        apiKey: 'test-api-key',
+        authType: AuthType.USE_GEMINI,
+      },
+      mockConfigInstance as any // Pass the mocked config instance
+    );
     expect(GoogleGenAI).toHaveBeenCalledWith({
       apiKey: 'test-api-key',
       vertexai: undefined,

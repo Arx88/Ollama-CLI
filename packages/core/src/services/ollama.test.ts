@@ -4,10 +4,49 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'; // Changed MockInstance to Mock
 import { OllamaClient } from './ollama.js';
 import { Config } from '../config/config.js';
-import { विश्वविद्यालय } from '../utils/testUtils.js'; // Using a test utility for fetch mocking
+
+// Define a simple fetch mock utility directly in the test file
+const mockFetch = {
+  responses: new Map<string, { body: string; status: number }>(),
+  streamingResponses: new Map<string, string>(),
+  fetch: vi.fn() as Mock<(...args: [RequestInfo | URL, RequestInit?]) => Promise<Response>>, // Used Mock with a single function signature type argument
+  setup: () => {
+    global.fetch = mockFetch.fetch as any;
+    mockFetch.fetch.mockImplementation(async (url: RequestInfo | URL, options?: RequestInit) => {
+      const urlString = url.toString();
+      if (mockFetch.streamingResponses.has(urlString)) {
+        const streamData = mockFetch.streamingResponses.get(urlString)!;
+        const readableStream = new ReadableStream({
+          start(controller) {
+            const lines = streamData.split('\n');
+            lines.forEach(line => controller.enqueue(new TextEncoder().encode(line + '\n')));
+            controller.close();
+          }
+        });
+        return Promise.resolve(new Response(readableStream, { status: 200 }));
+      }
+      if (mockFetch.responses.has(urlString)) {
+        const { body, status } = mockFetch.responses.get(urlString)!;
+        return Promise.resolve(new Response(body, { status }));
+      }
+      return Promise.resolve(new Response('Not Found', { status: 404 }));
+    });
+  },
+  reset: () => {
+    mockFetch.responses.clear();
+    mockFetch.streamingResponses.clear();
+    mockFetch.fetch.mockClear();
+  },
+  addResponse: (url: string, body: string, status = 200) => {
+    mockFetch.responses.set(url, { body, status });
+  },
+  addStreamingResponse: (url: string, body: string) => {
+    mockFetch.streamingResponses.set(url, body);
+  }
+};
 
 // Mock the Config class
 vi.mock('../config/config.js', () => {
@@ -30,13 +69,13 @@ describe('OllamaClient', () => {
       debugMode: false,
       model: 'gemini-pro',
       cwd: '/test',
-    });
+    } as any); // Added 'as any' to satisfy Config constructor
     ollamaClient = new OllamaClient(config, 'http://localhost:11434');
-    विश्वविद्यालय.setup();
+    mockFetch.setup();
   });
 
   afterEach(() => {
-    विश्वविद्यालय.reset();
+    mockFetch.reset();
     vi.clearAllMocks();
   });
 
@@ -48,22 +87,22 @@ describe('OllamaClient', () => {
           { name: 'mistral:latest', modified_at: '2023-10-27T15:00:00Z', size: 67890 },
         ],
       };
-      विश्वविद्यालय.addResponse(
+      mockFetch.addResponse(
         'http://localhost:11434/api/tags',
         JSON.stringify(mockModels),
       );
 
       const models = await ollamaClient.listModels();
       expect(models).toEqual(mockModels);
-      expect(विश्वविद्यालय.fetch).toHaveBeenCalledTimes(1);
-      expect(विश्वविद्यालय.fetch).toHaveBeenCalledWith(
+      expect(mockFetch.fetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch.fetch).toHaveBeenCalledWith(
         'http://localhost:11434/api/tags',
         expect.objectContaining({ method: 'GET' }),
       );
     });
 
     it('should throw an error if the API request fails', async () => {
-      विश्वविद्यालय.addResponse(
+      mockFetch.addResponse(
         'http://localhost:11434/api/tags',
         'Internal Server Error',
         500,
@@ -82,15 +121,15 @@ describe('OllamaClient', () => {
         modelfile: '# Modelfile for Llama2',
         parameters: 'num_ctx: 4096',
       };
-      विश्वविद्यालय.addResponse(
+      mockFetch.addResponse(
         'http://localhost:11434/api/show',
         JSON.stringify(mockModelDetails),
       );
 
       const details = await ollamaClient.showModelDetails(modelName);
       expect(details).toEqual(mockModelDetails);
-      expect(विश्वविद्यालय.fetch).toHaveBeenCalledTimes(1);
-      expect(विश्वविद्यालय.fetch).toHaveBeenCalledWith(
+      expect(mockFetch.fetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch.fetch).toHaveBeenCalledWith(
         'http://localhost:11434/api/show',
         expect.objectContaining({
           method: 'POST',
@@ -100,7 +139,7 @@ describe('OllamaClient', () => {
     });
 
     it('should throw an error if showing model details fails', async () => {
-      विश्वविद्यालय.addResponse(
+      mockFetch.addResponse(
         'http://localhost:11434/api/show',
         'Model not found',
         404,
@@ -122,13 +161,13 @@ describe('OllamaClient', () => {
         debugMode: true, // Enable debug mode
         model: 'gemini-pro',
         cwd: '/test',
-      });
-      (debugConfig.getDebugMode as vi.Mock).mockReturnValue(true); // Ensure mock returns true
+      } as any); // Added 'as any'
+      (debugConfig.getDebugMode as import('vitest').Mock).mockReturnValue(true); // Ensure mock returns true
 
       const debugClient = new OllamaClient(debugConfig, 'http://localhost:11434');
 
       const mockModels = { models: [{ name: 'llama2:latest' }] };
-      विश्वविद्यालय.addResponse('http://localhost:11434/api/tags', JSON.stringify(mockModels));
+      mockFetch.addResponse('http://localhost:11434/api/tags', JSON.stringify(mockModels));
 
       await debugClient.listModels();
 
@@ -155,14 +194,14 @@ describe('OllamaClient', () => {
         done: true,
         context: [1, 2, 3],
       };
-      विश्वविद्यालय.addResponse(
+      mockFetch.addResponse(
         'http://localhost:11434/api/generate',
         JSON.stringify(mockResponse),
       );
 
       const result = await ollamaClient.generate({ ...generateParams, stream: false });
 
-      expect(विश्वविद्यालय.fetch).toHaveBeenCalledWith(
+      expect(mockFetch.fetch).toHaveBeenCalledWith(
         'http://localhost:11434/api/generate',
         expect.objectContaining({
           method: 'POST',
@@ -180,7 +219,7 @@ describe('OllamaClient', () => {
       ];
       const streamString = mockStreamChunks.map(chunk => JSON.stringify(chunk)).join('\n');
 
-      विश्वविद्यालय.addStreamingResponse('http://localhost:11434/api/generate', streamString);
+      mockFetch.addStreamingResponse('http://localhost:11434/api/generate', streamString);
 
       const stream = (await ollamaClient.generate({ ...generateParams, stream: true })) as AsyncGenerator<unknown>;
 
@@ -189,7 +228,7 @@ describe('OllamaClient', () => {
         receivedChunks.push(chunk);
       }
 
-      expect(विश्वविद्यालय.fetch).toHaveBeenCalledWith(
+      expect(mockFetch.fetch).toHaveBeenCalledWith(
         'http://localhost:11434/api/generate',
         expect.objectContaining({
           method: 'POST',
@@ -200,7 +239,7 @@ describe('OllamaClient', () => {
     });
 
     it('should throw an error if generate API request fails', async () => {
-      विश्वविद्यालय.addResponse(
+      mockFetch.addResponse(
         'http://localhost:11434/api/generate',
         'Model not found',
         404,
@@ -216,7 +255,7 @@ describe('OllamaClient', () => {
       // Simulate a situation where the last chunk doesn't have a trailing newline
       const streamString = JSON.stringify(mockStreamChunks[0]);
 
-      विश्वविद्यालय.addStreamingResponse('http://localhost:11434/api/generate', streamString);
+      mockFetch.addStreamingResponse('http://localhost:11434/api/generate', streamString);
 
       const stream = (await ollamaClient.generate({ ...generateParams, stream: true })) as AsyncGenerator<unknown>;
 
@@ -232,14 +271,14 @@ describe('OllamaClient', () => {
     const embeddingsParams = { model: 'test-model', prompt: 'Embed this' };
     it('should send an embeddings request and return response', async () => {
       const mockResponse = { embedding: [0.1, 0.2, 0.3] };
-      विश्वविद्यालय.addResponse(
+      mockFetch.addResponse(
         'http://localhost:11434/api/embeddings',
         JSON.stringify(mockResponse),
       );
 
       const result = await ollamaClient.embeddings(embeddingsParams);
 
-      expect(विश्वविद्यालय.fetch).toHaveBeenCalledWith(
+      expect(mockFetch.fetch).toHaveBeenCalledWith(
         'http://localhost:11434/api/embeddings',
         expect.objectContaining({
           method: 'POST',
@@ -250,7 +289,7 @@ describe('OllamaClient', () => {
     });
 
     it('should throw an error if embeddings API request fails', async () => {
-      विश्वविद्यालय.addResponse(
+      mockFetch.addResponse(
         'http://localhost:11434/api/embeddings',
         'Server error',
         500,
