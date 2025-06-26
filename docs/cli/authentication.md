@@ -90,3 +90,26 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
           echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
           source ~/.bashrc
           ```
+
+5.  **Portkey (Vertex AI via Portkey):**
+    - Obtain your Portkey API key from [Portkey Dashboard](https://portkey.ai)
+    - Obtain your Vertex AI access token (virtual key from Portkey)
+    - Set the required environment variables:
+      ```bash
+      export PORTKEY_API_KEY="YOUR_PORTKEY_API_KEY"
+      export PORTKEY_VERTEX_ACCESS_TOKEN="YOUR_VERTEX_ACCESS_TOKEN"  # Virtual key for Vertex AI access
+      ```
+    - For repeated use, add them to your shell configuration file:
+      ```bash
+      echo 'export PORTKEY_API_KEY="YOUR_PORTKEY_API_KEY"' >> ~/.bashrc
+      echo 'export PORTKEY_VERTEX_ACCESS_TOKEN="YOUR_VERTEX_ACCESS_TOKEN"' >> ~/.bashrc
+      source ~/.bashrc
+      ```
+    - Optional: Set additional Portkey configuration:
+      ```bash
+      export PORTKEY_BASE_URL="http://your-portkey-gateway-url/v1"  # Custom gateway URL
+      export PORTKEY_VERTEX_PROJECT_ID="YOUR_GCP_PROJECT_ID"  # For project-specific routing
+      export PORTKEY_VERTEX_REGION="us-central1"  # For region-specific routing
+      ```
+    - All requests will be routed through Portkey's infrastructure to Vertex AI, providing additional monitoring, caching, and analytics capabilities.
+    - Note: This uses the `x-portkey-virtual-key` header format for authentication with your custom gateway.

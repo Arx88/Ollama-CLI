@@ -35,5 +35,24 @@ export const validateAuthMethod = (authMethod: string): string | null => {
     return null;
   }
 
+  if (authMethod === AuthType.USE_PORTKEY) {
+    if (!process.env.PORTKEY_API_KEY) {
+      return (
+        'PORTKEY_API_KEY environment variable not found.\n' +
+        'Also need GEMINI_API_KEY (or PORTKEY_VERTEX_ACCESS_TOKEN) for Vertex AI access.\n' +
+        'Optional: PORTKEY_VERTEX_PROJECT_ID, PORTKEY_VERTEX_REGION, PORTKEY_BASE_URL.\n' +
+        'Add these to your .env and try again, no reload needed!'
+      );
+    }
+    if (!process.env.GEMINI_API_KEY && !process.env.PORTKEY_VERTEX_ACCESS_TOKEN) {
+      return (
+        'GEMINI_API_KEY or PORTKEY_VERTEX_ACCESS_TOKEN environment variable not found.\n' +
+        'Portkey needs a Gemini API key to access Vertex AI.\n' +
+        'Add this to your .env and try again, no reload needed!'
+      );
+    }
+    return null;
+  }
+
   return 'Invalid auth method selected.';
 };
