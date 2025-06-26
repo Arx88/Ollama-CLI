@@ -16,6 +16,7 @@ import {
   GEMINI_CONFIG_DIR as GEMINI_DIR,
   DEFAULT_GEMINI_MODEL,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
+  DEFAULT_OLLAMA_MODEL,
   FileDiscoveryService,
   TelemetryTarget,
 } from '@google/gemini-cli-core';
@@ -41,6 +42,7 @@ const logger = {
 
 interface CliArgs {
   model: string | undefined;
+  ollamaModel: string | undefined;
   sandbox: boolean | string | undefined;
   'sandbox-image': string | undefined;
   debug: boolean | undefined;
@@ -62,6 +64,12 @@ async function parseArguments(): Promise<CliArgs> {
       type: 'string',
       description: `Model`,
       default: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
+    })
+    .option('ollamaModel', {
+      alias: 'om',
+      type: 'string',
+      description: 'Ollama Model',
+      default: process.env.OLLAMA_MODEL || DEFAULT_OLLAMA_MODEL,
     })
     .option('prompt', {
       alias: 'p',
@@ -244,6 +252,7 @@ export async function loadCliConfig(
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
     model: argv.model!,
+    ollamaModel: argv.ollamaModel!,
     extensionContextFilePaths,
   });
 }
