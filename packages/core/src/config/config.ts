@@ -240,13 +240,13 @@ export class Config {
     // the previous session's model (which might be Flash)
     this.contentGeneratorConfig = undefined!;
 
+    const gc = new GeminiClient(this);
     const contentConfig = await createContentGeneratorConfig(
       modelToUse,
       authMethod,
       this,
     );
 
-    const gc = new GeminiClient(this);
     this.geminiClient = gc;
     this.toolRegistry = await createToolRegistry(this);
     await gc.initialize(contentConfig);
