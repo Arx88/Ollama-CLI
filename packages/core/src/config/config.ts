@@ -252,6 +252,10 @@ export class Config {
 
     // The GeminiClient might not be appropriate for Ollama.
     // We need to conditionally create and initialize the right client/generator.
+
+    // Initialize ToolRegistry BEFORE client initialization, so it's available.
+    this.toolRegistry = await createToolRegistry(this);
+
     if (authMethod === AuthType.USE_OLLAMA) {
       // For Ollama, contentGeneratorConfig is already prepared by createContentGeneratorConfig
       // And GeminiClient.initialize will call createContentGenerator internally.
@@ -267,7 +271,6 @@ export class Config {
       await gc.initialize(contentConfig); // For Gemini/Vertex, this is fine
       this.contentGeneratorConfig = contentConfig;
     }
-    this.toolRegistry = await createToolRegistry(this);
 
     // Reset the session flag since we're explicitly changing auth and using default model
     this.modelSwitchedDuringSession = false;
