@@ -167,21 +167,21 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
     // Simplistic mapping for generationConfig - Ollama options are different
     // Simplistic mapping for generationConfig - Ollama options are different
     const options: Record<string, unknown> = {};
-    // THIS IS THE FINAL ATTEMPT: Accessing via request.generationConfig
-    if (request.generationConfig?.temperature !== undefined) {
-      options.temperature = request.generationConfig.temperature;
+    // Access generation parameters via the request.config object
+    if (request.config?.temperature !== undefined) {
+      options.temperature = request.config.temperature;
     }
-    if (request.generationConfig?.topP !== undefined) {
-      options.top_p = request.generationConfig.topP;
+    if (request.config?.topP !== undefined) {
+      options.top_p = request.config.topP;
     }
-    if (request.generationConfig?.topK !== undefined) {
-      options.top_k = request.generationConfig.topK;
+    if (request.config?.topK !== undefined) {
+      options.top_k = request.config.topK;
     }
-    if (request.generationConfig?.maxOutputTokens !== undefined) {
-      options.num_predict = request.generationConfig.maxOutputTokens;
+    if (request.config?.maxOutputTokens !== undefined) {
+      options.num_predict = request.config.maxOutputTokens;
     }
-    if (request.generationConfig?.stopSequences !== undefined) {
-      options.stop = request.generationConfig.stopSequences;
+    if (request.config?.stopSequences !== undefined) {
+      options.stop = request.config.stopSequences;
     }
      // TODO: Handle system instruction if provided in request.contents
      // (e.g. first message with role 'system' or a dedicated field if available)
