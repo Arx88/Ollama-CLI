@@ -21,11 +21,8 @@ async function performAuthFlow(
   openAuthDialog: () => void, // To re-open dialog for model selection if needed
   setAuthError: (error: string | null) => void, // To display errors
 ) {
-  if (authMethod === AuthType.USE_OLLAMA) {
-    try {
-      console.log('Performing Ollama authentication...');
-      // For Ollama, the primary goal here is to confirm it's accessible.
-      // Model selection will be explicitly handled by OllamaModelDialog in App.tsx.
+  try {
+    if (authMethod === AuthType.USE_OLLAMA) {
       console.log(
         '[useAuthCommand] Performing Ollama pre-authentication check...',
       );
@@ -40,14 +37,10 @@ async function performAuthFlow(
           return; // Stop further processing for Ollama here
         }
         // Success: Ollama is running and has models.
-        // No need to set a model here or call refreshAuth yet.
-        // App.tsx will trigger model selection dialog.
         console.log(
-          '[useAuthCommand] Ollama is accessible and has models. Proceeding to model selection dialog via App.tsx.',
+          '[useAuthCommand] Ollama is accessible and has models. App.tsx will trigger model selection.',
         );
-        setAuthError(null); // Clear any previous auth errors for other methods.
-        // We don't call config.refreshAuth here for Ollama.
-        // It will be called in App.tsx after a model is explicitly selected.
+        setAuthError(null); // Clear any previous auth errors.
       } catch (e) {
         const errorMessage = getErrorMessage(e);
         console.error(
@@ -58,7 +51,9 @@ async function performAuthFlow(
           `Ollama check failed: ${errorMessage}. Please ensure Ollama is running and accessible.`,
         );
         openAuthDialog(); // Re-open to allow choosing another method or retrying
+        return; // Stop further processing
       }
+      // No config.refreshAuth here for Ollama; it happens after explicit model selection in App.tsx.
     } else {
       // For other auth methods, refreshAuth immediately.
       await config.refreshAuth(authMethod);
@@ -66,19 +61,18 @@ async function performAuthFlow(
       setAuthError(null); // Clear any previous auth errors
     }
   } catch (e) {
-    // This outer catch is for errors during config.refreshAuth for non-Ollama methods,
-    // or any other unexpected errors within performAuthFlow.
+    // This catch block handles errors from config.refreshAuth (for non-Ollama methods)
+    // or any other unexpected errors during the flow.
     const errorMessage = getErrorMessage(e);
     console.error(
       `[useAuthCommand] Authentication flow failed for ${authMethod}:`,
       errorMessage,
     );
-    setAuthError(
-      `Authentication failed for ${authMethod}: ${errorMessage}.`,
-    );
+    setAuthError(`Authentication failed for ${authMethod}: ${errorMessage}.`);
+    // For non-Ollama methods, or if Ollama check itself failed before calling openAuthDialog,
+    // we might want to reopen. However, Ollama's specific catch already calls openAuthDialog.
+    // This ensures openAuthDialog is called if refreshAuth for other methods fails.
     if (authMethod !== AuthType.USE_OLLAMA) {
-      // Only re-open auth dialog if it's not Ollama,
-      // as Ollama errors are handled within its specific try-catch.
       openAuthDialog();
     }
   }
