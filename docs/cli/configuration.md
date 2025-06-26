@@ -55,14 +55,16 @@ In addition to a project settings file, a project's `.gemini` directory can cont
 - **`fileFiltering`** (object):
 
   - **Description:** Controls git-aware file filtering behavior for @ commands and file discovery tools.
-  - **Default:** `"respectGitIgnore": true, "enableRecursiveFileSearch": true`
+  - **Default:** `"respectGitIgnore": true, "respectGeminiIgnore": true, "enableRecursiveFileSearch": true`
   - **Properties:**
     - **`respectGitIgnore`** (boolean): Whether to respect .gitignore patterns when discovering files. When set to `true`, git-ignored files (like `node_modules/`, `dist/`, `.env`) are automatically excluded from @ commands and file listing operations.
+    - **`respectGeminiIgnore`** (boolean): Whether to respect .geminiignore patterns when discovering files. When set to `true`, gemini-ignored files are automatically excluded from @ commands and file listing operations.
     - **`enableRecursiveFileSearch`** (boolean): Whether to enable searching recursively for filenames under the current tree when completing @ prefixes in the prompt.
   - **Example:**
     ```json
     "fileFiltering": {
       "respectGitIgnore": true,
+      "respectGeminiIgnore": true,
       "enableRecursiveFileSearch": false
     }
     ```
@@ -294,7 +296,8 @@ Arguments passed directly when running the CLI can override other configurations
 - **`--debug_mode`** (**`-d`**):
   - Enables debug mode for this session, providing more verbose output.
 - **`--all_files`** (**`-a`**):
-  - If set, recursively includes all files within the current directory as context for the prompt.
+  - If set, recursively includes all files within the current directory as context for the prompt. This is subject to filtering by `.gitignore` and `.geminiignore` files.
+
 - **`--help`** (or **`-h`**):
   - Displays help information about command-line arguments.
 - **`--show_memory_usage`**:

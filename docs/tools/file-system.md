@@ -4,6 +4,20 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 
 **Note:** All file system tools operate within a `rootDirectory` (usually the current working directory where you launched the CLI) for security. Paths that you provide to these tools are generally expected to be absolute or are resolved relative to this root directory.
 
+## The `.geminiignore` file
+
+Much like a `.gitignore` file, you can create a `.geminiignore` file in your project's root directory to specify files and directories that Gemini CLI should ignore. This is useful for excluding large files, build artifacts, or other content that is not relevant to the model's task.
+
+The `.geminiignore` file uses the same syntax as `.gitignore`. Each line in the file specifies a pattern. Gemini CLI will ignore any files or directories that match these patterns.
+
+The following file system tools respect the `.geminiignore` file:
+
+-   `list_directory`
+-   `read_file`
+-   `read_many_files`
+-   `glob`
+-   `search_file_content`
+
 ## 1. `list_directory` (ReadFolder)
 
 `list_directory` lists the names of files and subdirectories directly within a specified directory path. It can optionally ignore entries matching provided glob patterns.
