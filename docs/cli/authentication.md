@@ -3,7 +3,6 @@
 The Gemini CLI requires you to authenticate with Google's AI services. On initial startup you'll need to configure **one** of the following authentication methods:
 
 1.  **Login with Google (Gemini Code Assist):**
-
     - Use this option to log in with your google account.
     - During initial startup, Gemini CLI will direct you to a webpage for authentication. Once authenticated, your credentials will be cached locally so the web login can be skipped on subsequent runs.
     - Note that the web login must be done in a browser that can communicate with the machine Gemini CLI is being run from. (Specifically, the browser will be redirected to a localhost url that Gemini CLI will be listening on).
@@ -21,7 +20,6 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
         ```
 
 2.  **<a id="gemini-api-key"></a>Gemini API key:**
-
     - Obtain your API key from Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
     - Set the `GEMINI_API_KEY` environment variable. In the following methods, replace `YOUR_GEMINI_API_KEY` with the API key you obtained from Google AI Studio:
       - You can temporarily set the environment variable in your current shell session using the following command:
@@ -37,9 +35,7 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
 3.  **<a id="workspace-gca"></a>Login with Google (Gemini Code Assist for Workspace or licensed Code Assist users):**
 
     (For more information, see: https://developers.google.com/gemini-code-assist/resources/faqs#gcp-project-requirement)
-
     - Use this option if:
-
       1. You have a Google Workspace account. Google Workspace is a paid service for businesses and organizations that provides a suite of productivity tools, including a custom email domain (e.g. your-name@your-company.com), enhanced security features, and administrative controls. These accounts are often managed by an employer or school.
       2. You are a licensed Code Assist user. This can happen if you have previously purchased a Code Assist license or have acquired one through Google Developer Program.
 

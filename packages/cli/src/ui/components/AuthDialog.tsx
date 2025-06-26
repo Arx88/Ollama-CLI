@@ -49,9 +49,13 @@ export function AuthDialog({
   }
 
   const handleAuthSelect = (authMethod: string) => {
-    logToFile(`[AuthDialog] handleAuthSelect called with authMethod: ${authMethod}`);
+    logToFile(
+      `[AuthDialog] handleAuthSelect called with authMethod: ${authMethod}`,
+    );
     const error = validateAuthMethod(authMethod);
-    logToFile(`[AuthDialog] validateAuthMethod returned: ${error === null ? 'null' : error}`);
+    logToFile(
+      `[AuthDialog] validateAuthMethod returned: ${error === null ? 'null' : error}`,
+    );
     if (error) {
       setErrorMessage(error);
     } else {

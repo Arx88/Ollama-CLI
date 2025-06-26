@@ -38,7 +38,8 @@ async function performAuthFlow(
       // For now, let's try to use the model from settings or default,
       // or the first available if not set.
       // A proper model selection UI would be better.
-      let selectedModel = settings.merged.ollamaModel || config.getOllamaModel();
+      let selectedModel =
+        settings.merged.ollamaModel || config.getOllamaModel();
 
       if (
         !selectedModel ||

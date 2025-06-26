@@ -49,24 +49,30 @@ export function useOllamaModelSelection(
       // Let's assume `config.getOllamaApiEndpoint()` is a method we can add or use if it exists.
       // If not, we'll default to a common one for now.
       const ollamaEndpoint =
-        typeof (config as any).getOllamaApiEndpoint === 'function'
-        ? (config as any).getOllamaApiEndpoint()
-        : 'http://localhost:11434';
+        config.getOllamaApiEndpoint() || 'http://localhost:11434';
 
-      logToFile(`[useOllamaModelSelection] Using Ollama endpoint: ${ollamaEndpoint}`);
+      logToFile(
+        `[useOllamaModelSelection] Using Ollama endpoint: ${ollamaEndpoint}`,
+      );
       const models = await getOllamaModels(ollamaEndpoint);
       setAvailableModels(models);
       if (models.length === 0) {
-        logToFile('[useOllamaModelSelection] No models returned from getOllamaModels.');
+        logToFile(
+          '[useOllamaModelSelection] No models returned from getOllamaModels.',
+        );
         // setErrorLoadingModels('No Ollama models found. Ensure Ollama is running and models are pulled.');
         // Dialog itself will show a message if models array is empty.
       } else {
-        logToFile(`[useOllamaModelSelection] Models fetched: ${models.join(', ')}`);
+        logToFile(
+          `[useOllamaModelSelection] Models fetched: ${models.join(', ')}`,
+        );
       }
     } catch (error) {
       logToFile(`[useOllamaModelSelection] Error fetching models: ${error}`);
       setErrorLoadingModels(
-        error instanceof Error ? error.message : 'Failed to fetch Ollama models.',
+        error instanceof Error
+          ? error.message
+          : 'Failed to fetch Ollama models.',
       );
       setAvailableModels([]); // Ensure models list is empty on error
     } finally {
@@ -74,24 +80,12 @@ export function useOllamaModelSelection(
     }
   }, [config]);
 
-  const handleModelSelect = useCallback(
-    (modelName: string) => {
-      logToFile(`[useOllamaModelSelection] Model selected: ${modelName}`);
-      settings.setValue(SettingScope.User, 'ollamaModel', modelName);
-      setIsOllamaModelDialogOpen(false);
-      // Potentially trigger a config reload or inform app that selection is made
-      // For now, App.tsx will re-read settings on next interaction or if we force a refresh.
-      if (onModelSelected) {
-        onModelSelected(modelName);
-      }
-    },
-    [settings, onModelSelected], // Depends on onModelSelected now
-  );
-
   // This is the function that the OllamaModelDialog will call when a model is selected by the user.
   const internalHandleModelSelect = useCallback(
     (modelName: string) => {
-      logToFile(`[useOllamaModelSelection] Model selected in dialog: ${modelName}`);
+      logToFile(
+        `[useOllamaModelSelection] Model selected in dialog: ${modelName}`,
+      );
       settings.setValue(SettingScope.User, 'ollamaModel', modelName);
       setIsOllamaModelDialogOpen(false);
       if (onModelSelected) {
@@ -102,7 +96,9 @@ export function useOllamaModelSelection(
   );
 
   const handleDialogClose = useCallback(() => {
-    logToFile('[useOllamaModelSelection] Dialog explicitly closed/cancelled by user.');
+    logToFile(
+      '[useOllamaModelSelection] Dialog explicitly closed/cancelled by user.',
+    );
     setIsOllamaModelDialogOpen(false);
     if (onDialogCancelled) {
       onDialogCancelled();

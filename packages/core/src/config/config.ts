@@ -128,6 +128,7 @@ export interface ConfigParameters {
   model: string;
   ollamaModel?: string;
   extensionContextFilePaths?: string[];
+  ollamaApiEndpoint?: string;
 }
 
 export class Config {
@@ -166,6 +167,7 @@ export class Config {
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
   private ollamaModel: string | undefined;
+  private readonly ollamaApiEndpoint: string | undefined;
   private readonly extensionContextFilePaths: string[];
   private modelSwitchedDuringSession: boolean = false;
   flashFallbackHandler?: FlashFallbackHandler;
@@ -209,7 +211,8 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
-    this.ollamaModel = params.ollamaModel;
+    this.ollamaModel = params.ollamaModel ?? DEFAULT_OLLAMA_MODEL;
+    this.ollamaApiEndpoint = params.ollamaApiEndpoint;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
 
     if (params.contextFileName) {
@@ -261,7 +264,7 @@ export class Config {
       // And GeminiClient.initialize will call createContentGenerator internally.
       // We need to ensure createContentGenerator in client.ts also gets the main config.
       this.contentGeneratorConfig = contentConfig;
-       // gc.initialize will call createContentGenerator(contentConfig, this)
+      // gc.initialize will call createContentGenerator(contentConfig, this)
       const gc = new GeminiClient(this); // GeminiClient itself might need authType later
       this.geminiClient = gc;
       await gc.initialize(contentConfig); // This will create OllamaContentGenerator via createContentGenerator
@@ -477,6 +480,10 @@ export class Config {
 
   getExtensionContextFilePaths(): string[] {
     return this.extensionContextFilePaths;
+  }
+
+  getOllamaApiEndpoint(): string | undefined {
+    return this.ollamaApiEndpoint;
   }
 
   async getGitService(): Promise<GitService> {

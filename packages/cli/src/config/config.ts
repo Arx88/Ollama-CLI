@@ -69,7 +69,8 @@ async function parseArguments(): Promise<CliArgs> {
     .option('ollamaModel', {
       alias: 'om',
       type: 'string',
-      description: 'Ollama Model (e.g., llama3, gemma:latest). Overrides settings.json and OLLAMA_MODEL env var.',
+      description:
+        'Ollama Model (e.g., llama3, gemma:latest). Overrides settings.json and OLLAMA_MODEL env var.',
       // Default will be handled explicitly in loadCliConfig to allow settings.json to override env var
     })
     .option('prompt', {
@@ -211,8 +212,14 @@ export async function loadCliConfig(
   // 2. settings.json (settings.ollamaModel)
   // 3. Environment variable (OLLAMA_MODEL)
   // 4. Core default (DEFAULT_OLLAMA_MODEL)
-  const effectiveOllamaModel = argv.ollamaModel || settings.ollamaModel || process.env.OLLAMA_MODEL || DEFAULT_OLLAMA_MODEL;
-  logToFile(`[loadCliConfig] Effective Ollama Model selected: ${effectiveOllamaModel}`);
+  const effectiveOllamaModel =
+    argv.ollamaModel ||
+    settings.ollamaModel ||
+    process.env.OLLAMA_MODEL ||
+    DEFAULT_OLLAMA_MODEL;
+  logToFile(
+    `[loadCliConfig] Effective Ollama Model selected: ${effectiveOllamaModel}`,
+  );
 
   return new Config({
     sessionId,

@@ -12,10 +12,10 @@ import {
   EmbedContentResponse,
   EmbedContentParameters,
   GoogleGenAI,
+  FunctionCall,
 } from '@google/genai';
 import {
   FinishReason,
-  HarmBlockThreshold,
   HarmCategory,
   SafetyRating,
   HarmProbability, // Added HarmProbability import
@@ -65,14 +65,14 @@ export type ContentGeneratorConfig = {
 export async function createContentGeneratorConfig(
   model: string | undefined,
   authType: AuthType | undefined,
-  config?: { getModel?: () => string },
+  config?: Config,
 ): Promise<ContentGeneratorConfig> {
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const googleApiKey = process.env.GOOGLE_API_KEY;
   const googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT;
   const googleCloudLocation = process.env.GOOGLE_CLOUD_LOCATION;
   // Ollama specific config
-  const ollamaModel = (config as any)?.getOllamaModel?.() || process.env.OLLAMA_MODEL; // Type assertion
+  const ollamaModel = config?.getOllamaModel?.() || process.env.OLLAMA_MODEL; // Type assertion
 
   let effectiveModel: string;
   if (authType === AuthType.USE_OLLAMA) {
@@ -130,7 +130,8 @@ export async function createContentGeneratorConfig(
 // Placeholder for Ollama Content Generator
 // This would need to implement the ContentGenerator interface
 // and interact with the Ollama API (likely via OllamaClient).
-export class OllamaContentGenerator implements ContentGenerator { // Added export here
+export class OllamaContentGenerator implements ContentGenerator {
+  // Added export here
   private readonly modelName: string;
   private readonly ollamaClient: OllamaClient;
   private currentContext: number[] | undefined; // To store context for conversational turns
@@ -154,7 +155,11 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
     if (Array.isArray(request.contents) && request.contents.length > 0) {
       const lastContentItem = request.contents[request.contents.length - 1]; // Type: string | Content
       // Ensure lastContentItem is a Content object (has 'role' and 'parts')
-      if (typeof lastContentItem !== 'string' && 'parts' in lastContentItem && Array.isArray(lastContentItem.parts)) {
+      if (
+        typeof lastContentItem !== 'string' &&
+        'parts' in lastContentItem &&
+        Array.isArray(lastContentItem.parts)
+      ) {
         promptText = lastContentItem.parts
           .map((part: import('@google/genai').Part) => part.text || '')
           .join(' ');
@@ -183,8 +188,8 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
     if (request.config?.stopSequences !== undefined) {
       options.stop = request.config.stopSequences;
     }
-     // TODO: Handle system instruction if provided in request.contents
-     // (e.g. first message with role 'system' or a dedicated field if available)
+    // TODO: Handle system instruction if provided in request.contents
+    // (e.g. first message with role 'system' or a dedicated field if available)
 
     return {
       model: this.modelName,
@@ -225,44 +230,44 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
       // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
       // Using HarmProbability.NEGLIGIBLE as a stand-in.
       // This might need adjustment based on how BLOCK_NONE should be interpreted.
-      { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmProbability.NEGLIGIBLE },
+      {
+        category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
+        probability: HarmProbability.NEGLIGIBLE,
+      },
     ];
 
-
-    return {
-      // text, functionCalls etc. are properties of GenerateContentResponse, not methods
-      text: ollamaResponse.response,
-      functionCalls: undefined,
-      executableCode: undefined,
-      codeExecutionResult: undefined,
-      data: "", // Changed to empty string
+    const geminiResponse: GenerateContentResponse = {
       candidates: [
         {
           content: {
-            parts: [{ text: ollamaResponse.response }],
+            parts: [], // Initialize parts as empty
             role: 'model',
           },
-          finishReason: finishReason,
+          finishReason,
           index: 0,
-          // safetyRatings: [], // Ollama doesn't provide these directly
-          // citationMetadata: undefined, // Ollama doesn't provide this
-          tokenCount: ollamaResponse.eval_count, // Approximate token count
-          safetyRatings: safetyRatings,
+          safetyRatings,
+          tokenCount: ollamaResponse.eval_count,
         },
       ],
       promptFeedback: {
-        // blockReason: undefined, // Ollama doesn't provide this
-        safetyRatings: safetyRatings, // Placeholder
+        safetyRatings,
       },
-      // usageMetadata: { // Not directly available, but can be constructed if needed
-      //   promptTokenCount: ollamaResponse.prompt_eval_count,
-      //   candidatesTokenCount: ollamaResponse.eval_count,
-      //   totalTokenCount: (ollamaResponse.prompt_eval_count || 0) + (ollamaResponse.eval_count || 0)
-      // }
     };
-  }
 
-  async generateContent(
+    if (ollamaResponse.tool_calls && ollamaResponse.tool_calls.length > 0) {
+      geminiResponse.candidates[0].content.functionCalls = ollamaResponse.tool_calls.map(toolCall => ({
+        name: toolCall.function.name,
+        args: toolCall.function.parameters,
+      }));
+      // If there are tool calls, the text content should be empty
+      geminiResponse.candidates[0].content.parts = [];
+      geminiResponse.text = undefined; // Clear text if tool calls are present
+    } else {
+      geminiResponse.candidates[0].content.parts = [{ text: ollamaResponse.response }];
+      geminiResponse.text = ollamaResponse.response;
+    }
+
+    return geminiResponse;
     request: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
     const ollamaParams = this.paramsFromGeminiRequest(request);
@@ -288,11 +293,9 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this; // To access 'this' inside the async generator
     async function* geminiStream(): AsyncGenerator<GenerateContentResponse> {
-      let accumulatedResponse = '';
       let finalOllamaResponse: OllamaGenerateResponse | null = null;
 
       for await (const ollamaChunk of stream) {
-        accumulatedResponse += ollamaChunk.response;
         finalOllamaResponse = ollamaChunk; // Keep track of the latest chunk for final context
 
         // Yield a Gemini-formatted response for each chunk
@@ -313,28 +316,61 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
                 ? self.mapDoneReason(ollamaChunk.done_reason)
                 : FinishReason.FINISH_REASON_UNSPECIFIED,
               index: 0,
-              safetyRatings: [ // Default safety ratings
+              safetyRatings: [
+                // Default safety ratings
                 // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
                 // Using HarmProbability.NEGLIGIBLE as a stand-in.
-                { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmProbability.NEGLIGIBLE },
+                {
+                  category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
+                  probability: HarmProbability.NEGLIGIBLE,
+                },
               ],
               tokenCount: ollamaChunk.eval_count, // Tokens for this chunk if available
             },
           ],
-          promptFeedback: { // Placeholder
+          promptFeedback: {
+            // Placeholder
             safetyRatings: [
-                // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
-                // Using HarmProbability.NEGLIGIBLE as a stand-in.
-              { category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmProbability.NEGLIGIBLE },
+              // HarmBlockThreshold.BLOCK_NONE is not assignable to HarmProbability.
+              // Using HarmProbability.NEGLIGIBLE as a stand-in.
+              {
+                category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
+                probability: HarmProbability.NEGLIGIBLE,
+              },
             ],
           },
-          // text, functionCalls etc. are properties of GenerateContentResponse, not methods
-          text: ollamaChunk.response,
-          functionCalls: undefined,
-          executableCode: undefined,
-          codeExecutionResult: undefined,
-          data: "", // Changed to empty string
-        };
+          const geminiResponse: GenerateContentResponse = {
+      candidates: [
+        {
+          content: {
+            parts: [], // Initialize parts as empty
+            role: 'model',
+          },
+          finishReason,
+          index: 0,
+          safetyRatings,
+          tokenCount: ollamaResponse.eval_count,
+        },
+      ],
+      promptFeedback: {
+        safetyRatings,
+      },
+    };
+
+    if (ollamaResponse.tool_calls && ollamaResponse.tool_calls.length > 0) {
+      geminiResponse.candidates[0].content.functionCalls = ollamaResponse.tool_calls.map(toolCall => ({
+        name: toolCall.function.name,
+        args: toolCall.function.parameters,
+      }));
+      // If there are tool calls, the text content should be empty
+      geminiResponse.candidates[0].content.parts = [];
+      geminiResponse.text = undefined; // Clear text if tool calls are present
+    } else {
+      geminiResponse.candidates[0].content.parts = [{ text: ollamaResponse.response }];
+      geminiResponse.text = ollamaResponse.response;
+    }
+
+    return geminiResponse;
         yield partialGeminiResponse;
 
         if (ollamaChunk.done) {
@@ -379,10 +415,16 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
     let numChars = 0;
     if (typeof request.contents === 'string') {
       numChars = request.contents.length;
-    } else if (Array.isArray(request.contents)) { // request.contents is Array<string | Content>
-      request.contents.forEach(contentItem => { // contentItem is string | Content
+    } else if (Array.isArray(request.contents)) {
+      // request.contents is Array<string | Content>
+      request.contents.forEach((contentItem) => {
+        // contentItem is string | Content
         // Ensure contentItem is a Content object
-        if (typeof contentItem !== 'string' && 'parts' in contentItem && Array.isArray(contentItem.parts)) {
+        if (
+          typeof contentItem !== 'string' &&
+          'parts' in contentItem &&
+          Array.isArray(contentItem.parts)
+        ) {
           contentItem.parts.forEach((part: import('@google/genai').Part) => {
             if (part.text && typeof part.text === 'string') {
               numChars += part.text.length;
@@ -391,10 +433,15 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
         } else if (typeof contentItem === 'string') {
           // This case should ideally not happen if CountTokensParameters expects Content objects for array items
           // but handling it defensively if request.contents can be Array<string>
-           numChars += contentItem.length;
+          numChars += contentItem.length;
         }
       });
-    } else if (request.contents && typeof request.contents !== 'string' && 'parts' in request.contents && Array.isArray(request.contents.parts)) {
+    } else if (
+      request.contents &&
+      typeof request.contents !== 'string' &&
+      'parts' in request.contents &&
+      Array.isArray(request.contents.parts)
+    ) {
       // Handle single Content object (request.contents is Content)
       request.contents.parts.forEach((part: import('@google/genai').Part) => {
         if (part.text && typeof part.text === 'string') {
@@ -409,8 +456,8 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
 
     console.warn(
       `Ollama countTokens is using a very rough character-based estimation for model "${this.modelName}". ` +
-      `Request: ${JSON.stringify(request)}. Estimated chars: ${numChars}, Estimated tokens: ${estimatedTokens}. ` +
-      `This is not accurate.`,
+        `Request: ${JSON.stringify(request)}. Estimated chars: ${numChars}, Estimated tokens: ${estimatedTokens}. ` +
+        `This is not accurate.`,
     );
 
     return { totalTokens: estimatedTokens };
@@ -424,18 +471,28 @@ export class OllamaContentGenerator implements ContentGenerator { // Added expor
     let promptText = '';
     if (typeof request.contents === 'string') {
       promptText = request.contents;
-    } else if (Array.isArray(request.contents)) { // request.contents is Array<string | Content>
+    } else if (Array.isArray(request.contents)) {
+      // request.contents is Array<string | Content>
       // Handle array of Content objects, taking the last one
       const lastContentItem = request.contents[request.contents.length - 1]; // lastContentItem is string | Content
       // Ensure lastContentItem is a Content object
-      if (typeof lastContentItem !== 'string' && 'parts' in lastContentItem && Array.isArray(lastContentItem.parts)) {
+      if (
+        typeof lastContentItem !== 'string' &&
+        'parts' in lastContentItem &&
+        Array.isArray(lastContentItem.parts)
+      ) {
         promptText = lastContentItem.parts
           .map((part: import('@google/genai').Part) => part.text || '')
           .join(' ');
       }
       // If lastContentItem is a string, it's not directly handled here for promptText from an array.
       // The original logic seemed to imply only Content objects with parts contribute to promptText from an array.
-    } else if (request.contents && typeof request.contents !== 'string' && 'parts' in request.contents && Array.isArray(request.contents.parts)) {
+    } else if (
+      request.contents &&
+      typeof request.contents !== 'string' &&
+      'parts' in request.contents &&
+      Array.isArray(request.contents.parts)
+    ) {
       // Handle single Content object (request.contents is Content)
       promptText = request.contents.parts
         .map((part: import('@google/genai').Part) => part.text || '')
@@ -494,7 +551,10 @@ export async function createContentGenerator(
   }
 
   if (contentGeneratorConfig.authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
-    return createCodeAssistContentGenerator(httpOptions, contentGeneratorConfig.authType);
+    return createCodeAssistContentGenerator(
+      httpOptions,
+      contentGeneratorConfig.authType,
+    );
   }
 
   if (
@@ -502,7 +562,10 @@ export async function createContentGenerator(
     contentGeneratorConfig.authType === AuthType.USE_VERTEX_AI
   ) {
     const googleGenAI = new GoogleGenAI({
-      apiKey: contentGeneratorConfig.apiKey === '' ? undefined : contentGeneratorConfig.apiKey,
+      apiKey:
+        contentGeneratorConfig.apiKey === ''
+          ? undefined
+          : contentGeneratorConfig.apiKey,
       vertexai: contentGeneratorConfig.vertexai,
       httpOptions,
     });

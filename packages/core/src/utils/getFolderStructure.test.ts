@@ -32,7 +32,11 @@ import * as path from 'path';
 
 // Removed the old createDirent helper.
 // createDirentForTest will be the only helper.
-const createDirentForTest = (name: string, type: 'file' | 'dir', parentDir: string): FSDirent => {
+const createDirentForTest = (
+  name: string,
+  type: 'file' | 'dir',
+  parentDir: string,
+): FSDirent => {
   const direntPath = nodePath.join(parentDir, name);
   return {
     name,
@@ -50,16 +54,18 @@ const createDirentForTest = (name: string, type: 'file' | 'dir', parentDir: stri
   } as FSDirent; // Cast to FSDirent. If errors persist, will use FSDirent & {path:string...}
 };
 
-
 describe('getFolderStructure', () => {
   let mockFsStructure: Record<string, FSDirent[]> = {};
 
   beforeEach(() => {
     vi.resetAllMocks();
     (path.resolve as Mock).mockImplementation((str: string) => str);
-    (path.join as Mock).mockImplementation((...args: string[]) => nodePath.join(...args)); // Ensure join is mocked if path is mocked
-    (path.normalize as Mock).mockImplementation((str: string) => nodePath.normalize(str));
-
+    (path.join as Mock).mockImplementation((...args: string[]) =>
+      nodePath.join(...args),
+    ); // Ensure join is mocked if path is mocked
+    (path.normalize as Mock).mockImplementation((str: string) =>
+      nodePath.normalize(str),
+    );
 
     // Initialize mockFsStructure here because createDirentForTest needs parentPath
     mockFsStructure = {
@@ -75,11 +81,23 @@ describe('getFolderStructure', () => {
         createDirentForTest('fileA2.js', 'file', '/testroot/subfolderA'),
         createDirentForTest('subfolderB', 'dir', '/testroot/subfolderA'),
       ],
-      '/testroot/subfolderA/subfolderB': [createDirentForTest('fileB1.md', 'file', '/testroot/subfolderA/subfolderB')],
+      '/testroot/subfolderA/subfolderB': [
+        createDirentForTest(
+          'fileB1.md',
+          'file',
+          '/testroot/subfolderA/subfolderB',
+        ),
+      ],
       '/testroot/emptyFolder': [],
-      '/testroot/node_modules': [createDirentForTest('somepackage', 'dir', '/testroot/node_modules')],
+      '/testroot/node_modules': [
+        createDirentForTest('somepackage', 'dir', '/testroot/node_modules'),
+      ],
       '/testroot/manyFilesFolder': Array.from({ length: 10 }, (_, i) =>
-        createDirentForTest(`file-${i}.txt`, 'file', '/testroot/manyFilesFolder'),
+        createDirentForTest(
+          `file-${i}.txt`,
+          'file',
+          '/testroot/manyFilesFolder',
+        ),
       ),
       '/testroot/manyFolders': Array.from({ length: 5 }, (_, i) =>
         createDirentForTest(`folder-${i}`, 'dir', '/testroot/manyFolders'),
@@ -87,16 +105,28 @@ describe('getFolderStructure', () => {
       ...Array.from({ length: 5 }, (_, i) => {
         const parent = `/testroot/manyFolders/folder-${i}`;
         return {
-          [parent]: [
-            createDirentForTest('child.txt', 'file', parent),
-          ],
+          [parent]: [createDirentForTest('child.txt', 'file', parent)],
         };
       }).reduce((acc, val) => ({ ...acc, ...val }), {}),
-      '/testroot/deepFolders': [createDirentForTest('level1', 'dir', '/testroot/deepFolders')],
-      '/testroot/deepFolders/level1': [createDirentForTest('level2', 'dir', '/testroot/deepFolders/level1')],
-      '/testroot/deepFolders/level1/level2': [createDirentForTest('level3', 'dir', '/testroot/deepFolders/level1/level2')],
+      '/testroot/deepFolders': [
+        createDirentForTest('level1', 'dir', '/testroot/deepFolders'),
+      ],
+      '/testroot/deepFolders/level1': [
+        createDirentForTest('level2', 'dir', '/testroot/deepFolders/level1'),
+      ],
+      '/testroot/deepFolders/level1/level2': [
+        createDirentForTest(
+          'level3',
+          'dir',
+          '/testroot/deepFolders/level1/level2',
+        ),
+      ],
       '/testroot/deepFolders/level1/level2/level3': [
-        createDirentForTest('file.txt', 'file', '/testroot/deepFolders/level1/level2/level3'),
+        createDirentForTest(
+          'file.txt',
+          'file',
+          '/testroot/deepFolders/level1/level2/level3',
+        ),
       ],
     };
 

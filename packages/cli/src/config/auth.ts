@@ -12,14 +12,19 @@ export const validateAuthMethod = (authMethod: string): string | null => {
   logToFile(`[validateAuthMethod] Received authMethod: ${authMethod}`);
   loadEnvironment();
   if (authMethod === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
-    logToFile('[validateAuthMethod] Returning null for LOGIN_WITH_GOOGLE_PERSONAL');
+    logToFile(
+      '[validateAuthMethod] Returning null for LOGIN_WITH_GOOGLE_PERSONAL',
+    );
     return null;
   }
 
   if (authMethod === AuthType.USE_GEMINI) {
     if (!process.env.GEMINI_API_KEY) {
-      const errorMsg = 'GEMINI_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
-      logToFile(`[validateAuthMethod] Returning error for USE_GEMINI: ${errorMsg}`);
+      const errorMsg =
+        'GEMINI_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
+      logToFile(
+        `[validateAuthMethod] Returning error for USE_GEMINI: ${errorMsg}`,
+      );
       return errorMsg;
     }
     logToFile('[validateAuthMethod] Returning null for USE_GEMINI');
@@ -36,7 +41,9 @@ export const validateAuthMethod = (authMethod: string): string | null => {
         '• GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION environment variables.\n' +
         '• GOOGLE_API_KEY environment variable (if using express mode).\n' +
         'Update your .env and try again, no reload needed!';
-      logToFile(`[validateAuthMethod] Returning error for USE_VERTEX_AI: ${errorMsg}`);
+      logToFile(
+        `[validateAuthMethod] Returning error for USE_VERTEX_AI: ${errorMsg}`,
+      );
       return errorMsg;
     }
     logToFile('[validateAuthMethod] Returning null for USE_VERTEX_AI');

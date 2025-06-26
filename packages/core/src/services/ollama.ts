@@ -63,7 +63,10 @@ export class OllamaClient {
     }
 
     if (this.config.getDebugMode()) {
-      console.debug(`Ollama Request: ${method} ${url}`, body ? JSON.stringify(body, null, 2) : '');
+      console.debug(
+        `Ollama Request: ${method} ${url}`,
+        body ? JSON.stringify(body, null, 2) : '',
+      );
     }
 
     // Default timeout for Ollama requests, e.g., 30 seconds for non-streaming
@@ -74,7 +77,9 @@ export class OllamaClient {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`Ollama API Error (${response.status} ${response.statusText}): ${errorBody}`);
+      console.error(
+        `Ollama API Error (${response.status} ${response.statusText}): ${errorBody}`,
+      );
       throw new Error(
         `Ollama API request failed: ${response.status} ${response.statusText} - ${errorBody}`,
       );
@@ -92,7 +97,9 @@ export class OllamaClient {
   }
 
   async showModelDetails(modelName: string): Promise<OllamaShowModelResponse> {
-    return this.request<OllamaShowModelResponse>('show', 'POST', { name: modelName });
+    return this.request<OllamaShowModelResponse>('show', 'POST', {
+      name: modelName,
+    });
   }
 
   // Placeholder for generate - this will be more complex
@@ -117,7 +124,10 @@ export class OllamaClient {
     };
 
     if (this.config.getDebugMode()) {
-      console.debug(`Ollama Generate Request: POST ${url}`, JSON.stringify(params, null, 2));
+      console.debug(
+        `Ollama Generate Request: POST ${url}`,
+        JSON.stringify(params, null, 2),
+      );
     }
 
     // For streaming, a very long timeout or no timeout via fetchWithTimeout might be preferable,
@@ -130,7 +140,9 @@ export class OllamaClient {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`Ollama API Error (${response.status} ${response.statusText}): ${errorBody}`);
+      console.error(
+        `Ollama API Error (${response.status} ${response.statusText}): ${errorBody}`,
+      );
       throw new Error(
         `Ollama API request failed: ${response.status} ${response.statusText} - ${errorBody}`,
       );
@@ -139,13 +151,17 @@ export class OllamaClient {
     if (params.stream === false) {
       const responseJson = await response.json();
       if (this.config.getDebugMode()) {
-        console.debug('Ollama Generate Response (non-streaming):', JSON.stringify(responseJson, null, 2));
+        console.debug(
+          'Ollama Generate Response (non-streaming):',
+          JSON.stringify(responseJson, null, 2),
+        );
       }
       return responseJson as OllamaGenerateResponse;
     } else {
       // Handle streaming response
-      const client = this; // For use inside the generator function
-      async function* streamGenerator(): AsyncGenerator<OllamaGenerateResponse> {
+      async function* streamGenerator(
+        config: Config,
+      ): AsyncGenerator<OllamaGenerateResponse> {
         if (!response.body) {
           throw new Error('Response body is null for streaming request.');
         }
@@ -156,15 +172,23 @@ export class OllamaClient {
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
-            if (buffer.trim()) { // Process any remaining data in buffer
+            if (buffer.trim()) {
+              // Process any remaining data in buffer
               try {
                 const jsonChunk = JSON.parse(buffer.trim());
-                 if (client.config.getDebugMode()) {
-                    console.debug('Ollama Generate Response (streaming chunk):', JSON.stringify(jsonChunk, null, 2));
-                  }
+                if (config.getDebugMode()) {
+                  console.debug(
+                    'Ollama Generate Response (streaming chunk):',
+                    JSON.stringify(jsonChunk, null, 2),
+                  );
+                }
                 yield jsonChunk as OllamaGenerateResponse;
               } catch (e) {
-                console.error('Error parsing final JSON chunk in stream:', e, buffer);
+                console.error(
+                  'Error parsing final JSON chunk in stream:',
+                  e,
+                  buffer,
+                );
               }
             }
             break;
@@ -177,8 +201,11 @@ export class OllamaClient {
             if (line) {
               try {
                 const jsonChunk = JSON.parse(line);
-                if (client.config.getDebugMode()) {
-                    console.debug('Ollama Generate Response (streaming chunk):', JSON.stringify(jsonChunk, null, 2));
+                if (config.getDebugMode()) {
+                  console.debug(
+                    'Ollama Generate Response (streaming chunk):',
+                    JSON.stringify(jsonChunk, null, 2),
+                  );
                 }
                 yield jsonChunk as OllamaGenerateResponse;
               } catch (e) {
@@ -189,7 +216,7 @@ export class OllamaClient {
           }
         }
       }
-      return streamGenerator();
+      return streamGenerator(this.config); // Pass this.config as an argument
     }
   }
 

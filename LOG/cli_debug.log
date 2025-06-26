@@ -1,0 +1,43 @@
+2025-06-26T12:54:37.550Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T12:54:37.654Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T12:54:37.655Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T12:56:35.807Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T12:56:35.911Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T12:56:35.912Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T12:56:40.754Z - [AuthDialog] handleAuthSelect called with authMethod: ollama
+2025-06-26T12:56:40.754Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T12:56:40.755Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T12:56:40.755Z - [AuthDialog] validateAuthMethod returned: null
+2025-06-26T12:56:45.077Z - [AuthDialog] handleAuthSelect called with authMethod: ollama
+2025-06-26T12:56:45.077Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T12:56:45.077Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T12:56:45.077Z - [AuthDialog] validateAuthMethod returned: null
+2025-06-26T15:27:58.582Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T15:27:58.699Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T15:27:58.700Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T15:28:05.656Z - [AuthDialog] handleAuthSelect called with authMethod: ollama
+2025-06-26T15:28:05.656Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T15:28:05.657Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T15:28:05.657Z - [AuthDialog] validateAuthMethod returned: null
+2025-06-26T15:39:09.237Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T15:39:22.275Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T15:42:55.517Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T15:47:16.135Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T15:47:16.196Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T15:47:16.198Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T15:47:16.198Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T16:03:54.196Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T16:03:54.309Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T16:03:54.310Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T16:04:08.901Z - [AuthDialog] handleAuthSelect called with authMethod: ollama
+2025-06-26T16:04:08.902Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T16:04:08.902Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T16:04:08.903Z - [AuthDialog] validateAuthMethod returned: null
+2025-06-26T16:05:09.434Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T16:05:09.537Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T16:05:09.538Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T16:07:53.164Z - [loadCliConfig] Effective Ollama Model selected: llama3.1:8b
+2025-06-26T16:14:10.513Z - [AuthDialog] handleAuthSelect called with authMethod: ollama
+2025-06-26T16:14:10.516Z - [validateAuthMethod] Received authMethod: ollama
+2025-06-26T16:14:10.517Z - [validateAuthMethod] Returning null for USE_OLLAMA
+2025-06-26T16:14:10.517Z - [AuthDialog] validateAuthMethod returned: null
