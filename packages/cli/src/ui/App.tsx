@@ -188,30 +188,30 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     // This is the new onModelSelected callback from the hook
     async (selectedModelName: string) => {
       if (!config) return; // Should not happen if dialog was shown
-      addItem({ type: MessageType.INFO, text: `Configuring Ollama with model: ${selectedModelName}...` });
+      addItem({ type: MessageType.INFO, text: `Configuring Ollama with model: ${selectedModelName}...` }, Date.now());
       try {
         config.setOllamaModel(selectedModelName); // Assumes this method exists and works
         await config.refreshAuth(AuthType.USE_OLLAMA); // Re-initialize client with new model
-        addItem({ type: MessageType.INFO, text: `Ollama configured with ${selectedModelName}.` });
+        addItem({ type: MessageType.INFO, text: `Ollama configured with ${selectedModelName}.` }, Date.now());
         // Optional: Force a refresh of UI elements that depend on config.getModel() or similar
         setCurrentModel(config.getModel()); // Update UI if currentModel state is used
         refreshStatic(); // Refresh static history if model name display is part of it
       } catch (e) {
         const errorMsg = getErrorMessage(e);
-        addItem({ type: MessageType.ERROR, text: `Failed to apply Ollama model ${selectedModelName}: ${errorMsg}` });
+        addItem({ type: MessageType.ERROR, text: `Failed to apply Ollama model ${selectedModelName}: ${errorMsg}` }, Date.now());
         logToFile(`[App.tsx] Error applying Ollama model ${selectedModelName}: ${errorMsg}`);
       }
     },
     // This is the new onDialogCancelled callback
     () => {
-      addItem({ type: MessageType.INFO, text: 'Ollama model selection cancelled.' });
+      addItem({ type: MessageType.INFO, text: 'Ollama model selection cancelled.' }, Date.now());
       // If no model was previously set, user might be stuck without a model.
       // Consider re-opening AuthDialog or providing other guidance if settings.merged.ollamaModel is still null.
       if (!settings.merged.ollamaModel) {
         // Optionally, re-open AuthDialog to allow choosing another auth method or retrying.
         // openAuthDialog();
         // Or inform user they need to select a model to use Ollama.
-        addItem({ type: MessageType.WARNING, text: "Warning: Ollama provider selected, but no model is configured. Please select a model or another auth method via /auth."})
+        addItem({ type: MessageType.WARNING, text: "Warning: Ollama provider selected, but no model is configured. Please select a model or another auth method via /auth."}, Date.now())
       }
     }
   );
