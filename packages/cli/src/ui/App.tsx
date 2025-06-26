@@ -219,21 +219,19 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   // Effect to trigger Ollama model selection if Ollama auth is chosen and no model is set
   useEffect(() => {
     if (
-      settings.merged.selectedAuthType === AuthType.USE_OLLAMA && // AuthType needs to be imported
+      settings.merged.selectedAuthType === AuthType.USE_OLLAMA &&
       !isAuthDialogOpen && // Only run if AuthDialog is not open
-      !isOllamaModelDialogOpen && // And OllamaModelDialog is not already open
-      !settings.merged.ollamaModel // And no ollamaModel is already set in settings
+      !isOllamaModelDialogOpen // And OllamaModelDialog is not already open
+      // Condition !settings.merged.ollamaModel removed to allow re-selection
     ) {
-      // Potentially add a check here: if (config.getOllamaApiEndpoint()) to ensure it's configured
       openOllamaModelDialog();
     }
   }, [
     settings.merged.selectedAuthType,
-    settings.merged.ollamaModel,
+    // settings.merged.ollamaModel, // Removed from dependency array
     isAuthDialogOpen,
     isOllamaModelDialogOpen,
     openOllamaModelDialog,
-    // config, // Add if config.getOllamaApiEndpoint() check is used
   ]);
 
   const toggleCorgiMode = useCallback(() => {
