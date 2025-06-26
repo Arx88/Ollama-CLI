@@ -35,5 +35,9 @@ export const validateAuthMethod = (authMethod: string): string | null => {
     return null;
   }
 
+  if (authMethod === AuthType.USE_OLLAMA) {
+    return null; // Ollama runs locally, no specific auth validation needed here.
+  }
+
   return 'Invalid auth method selected.';
 };
