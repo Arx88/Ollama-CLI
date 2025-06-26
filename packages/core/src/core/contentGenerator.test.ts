@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, vi } from 'vitest';
+import { describe, it, vi, expect } from 'vitest';
 import { createContentGenerator, AuthType } from './contentGenerator.js';
 import { GoogleGenAI } from '@google/genai';
 import { Config } from '../config/config.js';

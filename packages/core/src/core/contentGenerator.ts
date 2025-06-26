@@ -234,23 +234,22 @@ export class OllamaContentGenerator implements ContentGenerator {
 
     let text: string | undefined = undefined;
     let parts: Array<import('@google/genai').Part> = [];
-    // functionCalls on the top-level GenerateContentResponse seems for specific summary,
-    // actual executable calls are in parts. Initialize as undefined per TS2739.
-    const topLevelFunctionCalls:
-      | Array<import('@google/genai').FunctionCall>
-      | undefined = undefined;
+    let topLevelFunctionCalls: Array<import('@google/genai').FunctionCall> | undefined = undefined;
 
     if (ollamaResponse.tool_calls && ollamaResponse.tool_calls.length > 0) {
+      const mappedFunctionCalls: Array<import('@google/genai').FunctionCall> = [];
+
       parts = ollamaResponse.tool_calls.map((toolCall) => {
         const functionCallValue: import('@google/genai').FunctionCall = {
           name: toolCall.function.name,
           args: toolCall.function.parameters,
         };
-        // Wrap the FunctionCall object in a Part object.
-        // This aligns with the structure where a Part can contain a functionCall.
+        mappedFunctionCalls.push(functionCallValue);
         return { functionCall: functionCallValue };
       });
-      text = undefined; // No primary text if there are tool calls
+
+      topLevelFunctionCalls = mappedFunctionCalls;
+      text = undefined;
     } else {
       parts = ollamaResponse.response
         ? [{ text: ollamaResponse.response }]
@@ -258,35 +257,29 @@ export class OllamaContentGenerator implements ContentGenerator {
       text = ollamaResponse.response;
     }
 
-    // Ensure candidates array is always present with at least one candidate.
     const candidates: Array<import('@google/genai').Candidate> = [
       {
         content: {
-          parts, // object-shorthand
+          parts,
           role: 'model',
         },
         finishReason,
         index: 0,
         safetyRatings,
         tokenCount: ollamaResponse.eval_count,
-        // citationMetadata, etc. are optional and can be omitted if not available
       },
     ];
 
     const geminiResponse: GenerateContentResponse = {
-      candidates, // object-shorthand
+      candidates,
       promptFeedback: {
         safetyRatings,
-        // blockReason, blockReasonMessage are optional
       },
-      // Properties required by GenerateContentResponse type (TS2739)
-      text, // object-shorthand (text: text)
-      // SDKs might derive this from parts if parts are purely text.
-      // If parts contain non-text (like functionCalls), this should be undefined or empty.
-      functionCalls: topLevelFunctionCalls, // Correct as is, key and var name differ for clarity or necessity
-      data: undefined, // Initialize optional fields
-      executableCode: undefined, // Initialize optional fields
-      codeExecutionResult: undefined, // Initialize optional fields
+      text,
+      functionCalls: topLevelFunctionCalls,
+      data: undefined,
+      executableCode: undefined,
+      codeExecutionResult: undefined,
     };
 
     return geminiResponse;
@@ -521,10 +514,12 @@ export class OllamaContentGenerator implements ContentGenerator {
       await this.ollamaClient.embeddings(ollamaParams);
 
     return {
-      embedding: {
-        values: ollamaResponse.embedding,
-      },
-    } as EmbedContentResponse; // Cast to EmbedContentResponse, though structure matches
+      embeddings: [
+        {
+          values: ollamaResponse.embedding,
+        }
+      ],
+    };
   }
 }
 
