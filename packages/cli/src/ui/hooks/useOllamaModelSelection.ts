@@ -16,15 +16,16 @@ export interface OllamaModelSelectionResult {
   availableModels: string[];
   errorLoadingModels: string | null;
   openOllamaModelDialog: () => Promise<void>;
-  handleModelSelect: (modelName: string) => void;
+  // handleModelSelect is internal to the hook now, triggered by dialog
   handleDialogClose: () => void;
 }
 
 export function useOllamaModelSelection(
   config: Config,
   settings: LoadedSettings,
-  // Callback to inform App.tsx or other components that auth flow might need re-evaluation or UI refresh
-  onSelectionComplete?: (modelSelected: boolean) => void,
+  // Callback to inform App.tsx that a model was selected
+  onModelSelected?: (modelName: string) => void,
+  onDialogCancelled?: () => void,
 ): OllamaModelSelectionResult {
   const [isOllamaModelDialogOpen, setIsOllamaModelDialogOpen] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -83,16 +84,29 @@ export function useOllamaModelSelection(
         onSelectionComplete(true);
       }
     },
-    [settings, onSelectionComplete],
+    [settings, onModelSelected], // Depends on onModelSelected now
+  );
+
+  // This is the function that the OllamaModelDialog will call when a model is selected by the user.
+  const internalHandleModelSelect = useCallback(
+    (modelName: string) => {
+      logToFile(`[useOllamaModelSelection] Model selected in dialog: ${modelName}`);
+      settings.setValue(SettingScope.User, 'ollamaModel', modelName);
+      setIsOllamaModelDialogOpen(false);
+      if (onModelSelected) {
+        onModelSelected(modelName); // Pass the selected model name
+      }
+    },
+    [settings, onModelSelected],
   );
 
   const handleDialogClose = useCallback(() => {
-    logToFile('[useOllamaModelSelection] Dialog closed without selection.');
+    logToFile('[useOllamaModelSelection] Dialog explicitly closed/cancelled by user.');
     setIsOllamaModelDialogOpen(false);
-    if (onSelectionComplete) {
-      onSelectionComplete(false); // Indicate that no model was selected / dialog was cancelled
+    if (onDialogCancelled) {
+      onDialogCancelled();
     }
-  }, [onSelectionComplete]);
+  }, [onDialogCancelled]);
 
   return {
     isOllamaModelDialogOpen,
@@ -100,7 +114,11 @@ export function useOllamaModelSelection(
     availableModels,
     errorLoadingModels,
     openOllamaModelDialog,
-    handleModelSelect,
-    handleDialogClose,
+    // Expose the internal handler for the dialog to call
+    // This might be confusing. Let's rename it in the returned object for clarity
+    // or pass it directly to the dialog when App.tsx renders it.
+    // For now, App.tsx will get this function and pass it to the dialog.
+    onModelSelectedFromDialog: internalHandleModelSelect, // Renamed for clarity in App.tsx if needed
+    handleDialogClose, // This is for explicit cancellation (e.g. Esc from dialog)
   };
 }

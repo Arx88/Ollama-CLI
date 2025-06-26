@@ -73,6 +73,7 @@ import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
 import { ShowMoreLines } from './components/ShowMoreLines.js';
+import { logToFile } from '../utils/fileLogger.js'; // Added for error logging
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
@@ -177,14 +178,43 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     availableModels: availableOllamaModels,
     errorLoadingModels: errorLoadingOllamaModels,
     openOllamaModelDialog,
-    handleModelSelect: handleOllamaModelSelect,
-    handleDialogClose: handleOllamaModelDialogClose,
-  } = useOllamaModelSelection(config, settings, () => {
-    // This callback is called when an Ollama model is selected or dialog is cancelled.
-    // We might want to refresh or update something here, e.g., re-initialize client if model changed.
-    // For now, just logging or simple re-render might be enough as settings are updated.
-    // A more robust solution might involve a way to signal config changes to GeminiClient.
-  });
+    // `onModelSelectedFromDialog` will be passed to OllamaModelDialog's onSelect prop
+    // `handleDialogClose` will be passed to OllamaModelDialog's onCancel prop
+    onModelSelectedFromDialog,
+    handleDialogClose,
+  } = useOllamaModelSelection(
+    config,
+    settings,
+    // This is the new onModelSelected callback from the hook
+    async (selectedModelName: string) => {
+      if (!config) return; // Should not happen if dialog was shown
+      addItem({ type: MessageType.INFO, text: `Configuring Ollama with model: ${selectedModelName}...` });
+      try {
+        config.setOllamaModel(selectedModelName); // Assumes this method exists and works
+        await config.refreshAuth(AuthType.USE_OLLAMA); // Re-initialize client with new model
+        addItem({ type: MessageType.INFO, text: `Ollama configured with ${selectedModelName}.` });
+        // Optional: Force a refresh of UI elements that depend on config.getModel() or similar
+        setCurrentModel(config.getModel()); // Update UI if currentModel state is used
+        refreshStatic(); // Refresh static history if model name display is part of it
+      } catch (e) {
+        const errorMsg = getErrorMessage(e);
+        addItem({ type: MessageType.ERROR, text: `Failed to apply Ollama model ${selectedModelName}: ${errorMsg}` });
+        logToFile(`[App.tsx] Error applying Ollama model ${selectedModelName}: ${errorMsg}`);
+      }
+    },
+    // This is the new onDialogCancelled callback
+    () => {
+      addItem({ type: MessageType.INFO, text: 'Ollama model selection cancelled.' });
+      // If no model was previously set, user might be stuck without a model.
+      // Consider re-opening AuthDialog or providing other guidance if settings.merged.ollamaModel is still null.
+      if (!settings.merged.ollamaModel) {
+        // Optionally, re-open AuthDialog to allow choosing another auth method or retrying.
+        // openAuthDialog();
+        // Or inform user they need to select a model to use Ollama.
+        addItem({ type: MessageType.WARNING, text: "Warning: Ollama provider selected, but no model is configured. Please select a model or another auth method via /auth."})
+      }
+    }
+  );
 
   // Effect to trigger Ollama model selection if Ollama auth is chosen and no model is set
   useEffect(() => {
@@ -760,8 +790,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 <OllamaModelDialog
                   models={availableOllamaModels}
                   currentModel={settings.merged.ollamaModel}
-                  onSelect={handleOllamaModelSelect}
-                  onCancel={handleOllamaModelDialogClose}
+                  onSelect={onModelSelectedFromDialog} // Changed from handleOllamaModelSelect
+                  onCancel={handleDialogClose} // Changed from handleOllamaModelDialogClose
                 />
               )}
             </Box>
