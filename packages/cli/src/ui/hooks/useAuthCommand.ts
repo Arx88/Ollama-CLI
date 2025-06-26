@@ -35,28 +35,78 @@ async function performAuthFlow(
         return;
       }
 
-      // For now, let's try to use the model from settings or default,
-      // or the first available if not set.
-      // A proper model selection UI would be better.
-      let selectedModel =
+      let preferredModelName =
         settings.merged.ollamaModel || config.getOllamaModel();
+      let finalModelToUse: string | undefined = undefined;
 
-      if (
-        !selectedModel ||
-        !availableModels.models.find((m) => m.name === selectedModel)
-      ) {
-        if (selectedModel) {
-          console.warn(
-            `Previously selected Ollama model "${selectedModel}" not found. Falling back.`,
-          );
-        }
-        selectedModel = availableModels.models[0].name.split(':')[0]; // Use the base name of the first model
-        console.log(`Using first available Ollama model: ${selectedModel}`);
+      if (availableModels.models.length === 0) {
+        setAuthError(
+          'No Ollama models found. Please ensure Ollama is running and models are installed.',
+        );
+        openAuthDialog(); // Re-open to allow choosing another method or retrying
+        return;
       }
 
-      // We need a way to store this selected model persistently if it changed.
-      // For now, just set it in the current session's config.
-      config.setOllamaModel(selectedModel);
+      if (preferredModelName) {
+        // 1. Try exact match first
+        const exactMatch = availableModels.models.find(
+          (m) => m.name === preferredModelName,
+        );
+        if (exactMatch) {
+          finalModelToUse = exactMatch.name;
+        } else {
+          // 2. Try flexible match (prefix + ':' or direct match if preferredModelName already has a tag)
+          const flexibleMatches = availableModels.models.filter(
+            (m) =>
+              m.name === preferredModelName || // Case: preferredModelName already has tag
+              m.name.startsWith(preferredModelName + ':'), // Case: preferredModelName is base
+          );
+
+          if (flexibleMatches.length > 0) {
+            // Prefer a ':latest' tag if available among flexible matches
+            const latestTagMatch = flexibleMatches.find((m) =>
+              m.name.endsWith(':latest'),
+            );
+            if (latestTagMatch) {
+              finalModelToUse = latestTagMatch.name;
+            } else {
+              // Otherwise, use the first flexible match (e.g., model:tag123)
+              finalModelToUse = flexibleMatches[0].name;
+            }
+            console.log(
+              `Using Ollama model "${finalModelToUse}" based on preferred model "${preferredModelName}".`,
+            );
+          }
+        }
+      }
+
+      // 3. If no model could be determined from settings/config, or if the preferred model wasn't found
+      if (!finalModelToUse) {
+        if (preferredModelName) {
+          // Only log warning if a preferred model was set but not found after flexible search
+          console.warn(
+            `Preferred Ollama model "${preferredModelName}" not found among available models. Falling back.`,
+          );
+        }
+        // Fallback to the first model in the list (using its full name including tag)
+        finalModelToUse = availableModels.models[0].name;
+        console.log(
+          `Using first available Ollama model by default: ${finalModelToUse}`,
+        );
+      }
+
+      // Set the chosen model in the current session's config
+      config.setOllamaModel(finalModelToUse);
+      // Persist this choice in settings only if it came from fallback and no prior setting existed,
+      // OR if the flexible match resolved to a more specific name (e.g. with tag)
+      // This avoids overwriting a user's base model preference (e.g., "llama3") with "llama3:latest"
+      // unless it was the only way to resolve it.
+      // However, the current settings mechanism in useOllamaModelSelection already handles saving the user's explicit choice.
+      // So, we primarily ensure config is updated here for the session.
+      // If `performAuthFlow` is called *without* user interaction (e.g. initial load),
+      // and `settings.merged.ollamaModel` was empty, then `useOllamaModelSelection`'s dialog
+      // should subsequently open if `finalModelToUse` is set, allowing user to confirm/change.
+      // The main goal here is that `config.setOllamaModel` has the *actually usable* model name.
       // This part of refreshAuth will need to be adapted for Ollama
       // to correctly set up the content generator for an Ollama model.
       await config.refreshAuth(authMethod);
