@@ -36,6 +36,8 @@ import { ThemeDialog } from './components/ThemeDialog.js';
 import { AuthDialog } from './components/AuthDialog.js';
 import { AuthInProgress } from './components/AuthInProgress.js';
 import { EditorSettingsDialog } from './components/EditorSettingsDialog.js';
+import { OllamaModelDialog } from './components/OllamaModelDialog.js'; // Added
+import { useOllamaModelSelection } from './hooks/useOllamaModelSelection.js'; // Added
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
 import { loadHierarchicalGeminiMemory } from '../config/config.js';
@@ -54,6 +56,7 @@ import {
   ApprovalMode,
   isEditorAvailable,
   EditorType,
+  AuthType, // Added AuthType
 } from '@google/gemini-cli-core';
 import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
@@ -160,12 +163,48 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [settings.merged.selectedAuthType, openAuthDialog, setAuthError]);
 
+  // Effect to trigger Ollama model selection if Ollama auth is chosen and no model is set
+  useEffect(() => {
+    if (
+      settings.merged.selectedAuthType === AuthType.USE_OLLAMA && // AuthType needs to be imported
+      !isAuthDialogOpen && // Only run if AuthDialog is not open
+      !isOllamaModelDialogOpen && // And OllamaModelDialog is not already open
+      !settings.merged.ollamaModel // And no ollamaModel is already set in settings
+    ) {
+      // Potentially add a check here: if (config.getOllamaApiEndpoint()) to ensure it's configured
+      openOllamaModelDialog();
+    }
+  }, [
+    settings.merged.selectedAuthType,
+    settings.merged.ollamaModel,
+    isAuthDialogOpen,
+    isOllamaModelDialogOpen,
+    openOllamaModelDialog,
+    // config, // Add if config.getOllamaApiEndpoint() check is used
+  ]);
+
   const {
     isEditorDialogOpen,
     openEditorDialog,
     handleEditorSelect,
     exitEditorDialog,
   } = useEditorSettings(settings, setEditorError, addItem);
+
+  // Ollama Model Selection Hook
+  const {
+    isOllamaModelDialogOpen,
+    isLoadingModels: isLoadingOllamaModels,
+    availableModels: availableOllamaModels,
+    errorLoadingModels: errorLoadingOllamaModels,
+    openOllamaModelDialog,
+    handleModelSelect: handleOllamaModelSelect,
+    handleDialogClose: handleOllamaModelDialogClose,
+  } = useOllamaModelSelection(config, settings, () => {
+    // This callback is called when an Ollama model is selected or dialog is cancelled.
+    // We might want to refresh or update something here, e.g., re-initialize client if model changed.
+    // For now, just logging or simple re-render might be enough as settings are updated.
+    // A more robust solution might involve a way to signal config changes to GeminiClient.
+  });
 
   const toggleCorgiMode = useCallback(() => {
     setCorgiMode((prev) => !prev);
@@ -708,6 +747,23 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 settings={settings}
                 onExit={exitEditorDialog}
               />
+            </Box>
+          ) : isOllamaModelDialogOpen ? ( // Added condition for OllamaModelDialog
+            <Box flexDirection="column">
+              {isLoadingOllamaModels && <Text>Loading Ollama models...</Text>}
+              {errorLoadingOllamaModels && (
+                <Text color={Colors.AccentRed}>
+                  Error: {errorLoadingOllamaModels}
+                </Text>
+              )}
+              {!isLoadingOllamaModels && (
+                <OllamaModelDialog
+                  models={availableOllamaModels}
+                  currentModel={settings.merged.ollamaModel}
+                  onSelect={handleOllamaModelSelect}
+                  onCancel={handleOllamaModelDialogClose}
+                />
+              )}
             </Box>
           ) : (
             <>

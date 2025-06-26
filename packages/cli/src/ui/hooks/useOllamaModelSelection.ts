@@ -1,0 +1,106 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { useState, useCallback } from 'react';
+import { getOllamaModels } from '../../utils/ollamaUtils.js';
+import { type Config } from '@google/gemini-cli-core';
+import { type LoadedSettings, SettingScope } from '../../config/settings.js';
+import { logToFile } from '../../utils/fileLogger.js'; // For debugging this hook
+
+export interface OllamaModelSelectionResult {
+  isOllamaModelDialogOpen: boolean;
+  isLoadingModels: boolean;
+  availableModels: string[];
+  errorLoadingModels: string | null;
+  openOllamaModelDialog: () => Promise<void>;
+  handleModelSelect: (modelName: string) => void;
+  handleDialogClose: () => void;
+}
+
+export function useOllamaModelSelection(
+  config: Config,
+  settings: LoadedSettings,
+  // Callback to inform App.tsx or other components that auth flow might need re-evaluation or UI refresh
+  onSelectionComplete?: (modelSelected: boolean) => void,
+): OllamaModelSelectionResult {
+  const [isOllamaModelDialogOpen, setIsOllamaModelDialogOpen] = useState(false);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [errorLoadingModels, setErrorLoadingModels] = useState<string | null>(
+    null,
+  );
+
+  const openOllamaModelDialog = useCallback(async () => {
+    setIsOllamaModelDialogOpen(true);
+    setIsLoadingModels(true);
+    setErrorLoadingModels(null);
+    logToFile('[useOllamaModelSelection] Opening dialog, fetching models...');
+
+    try {
+      // TODO: The Ollama API endpoint should ideally come from config
+      // For now, let's assume a default or that config.getOllamaApiEndpoint() exists and is suitable.
+      // If config.getOllamaApiEndpoint() is not available in the core Config,
+      // we might need to add it or pass it directly.
+      // Let's assume `config.getOllamaApiEndpoint()` is a method we can add or use if it exists.
+      // If not, we'll default to a common one for now.
+      const ollamaEndpoint =
+        typeof (config as any).getOllamaApiEndpoint === 'function'
+        ? (config as any).getOllamaApiEndpoint()
+        : 'http://localhost:11434';
+
+      logToFile(`[useOllamaModelSelection] Using Ollama endpoint: ${ollamaEndpoint}`);
+      const models = await getOllamaModels(ollamaEndpoint);
+      setAvailableModels(models);
+      if (models.length === 0) {
+        logToFile('[useOllamaModelSelection] No models returned from getOllamaModels.');
+        // setErrorLoadingModels('No Ollama models found. Ensure Ollama is running and models are pulled.');
+        // Dialog itself will show a message if models array is empty.
+      } else {
+        logToFile(`[useOllamaModelSelection] Models fetched: ${models.join(', ')}`);
+      }
+    } catch (error) {
+      logToFile(`[useOllamaModelSelection] Error fetching models: ${error}`);
+      setErrorLoadingModels(
+        error instanceof Error ? error.message : 'Failed to fetch Ollama models.',
+      );
+      setAvailableModels([]); // Ensure models list is empty on error
+    } finally {
+      setIsLoadingModels(false);
+    }
+  }, [config]);
+
+  const handleModelSelect = useCallback(
+    (modelName: string) => {
+      logToFile(`[useOllamaModelSelection] Model selected: ${modelName}`);
+      settings.setValue(SettingScope.User, 'ollamaModel', modelName);
+      setIsOllamaModelDialogOpen(false);
+      // Potentially trigger a config reload or inform app that selection is made
+      // For now, App.tsx will re-read settings on next interaction or if we force a refresh.
+      if (onSelectionComplete) {
+        onSelectionComplete(true);
+      }
+    },
+    [settings, onSelectionComplete],
+  );
+
+  const handleDialogClose = useCallback(() => {
+    logToFile('[useOllamaModelSelection] Dialog closed without selection.');
+    setIsOllamaModelDialogOpen(false);
+    if (onSelectionComplete) {
+      onSelectionComplete(false); // Indicate that no model was selected / dialog was cancelled
+    }
+  }, [onSelectionComplete]);
+
+  return {
+    isOllamaModelDialogOpen,
+    isLoadingModels,
+    availableModels,
+    errorLoadingModels,
+    openOllamaModelDialog,
+    handleModelSelect,
+    handleDialogClose,
+  };
+}
