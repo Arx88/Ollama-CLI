@@ -334,7 +334,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
             // For simplicity, we'll assume if Ollama is up, we can try to set the model.
             // A more robust check would be `ollamaClient.showModelDetails(settings.merged.ollamaModel)`.
 
-            config.setOllamaModel(settings.merged.ollamaModel);
+            config.setOllamaModel(settings.merged.ollamaModel!); // Added non-null assertion
             await config.refreshAuth(AuthType.USE_OLLAMA);
             setCurrentModel(config.getModel()); // Update model display
             logToFile(
