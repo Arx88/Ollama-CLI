@@ -229,7 +229,17 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   // The new callback `onOllamaAuthTypeSelectedAndChecked` passed to `useAuthCommand`
   // now handles triggering `openOllamaModelDialog` at the correct time.
 
-  // useAuthCommand is now placed after useOllamaModelSelection
+    // now handles triggering `openOllamaModelDialog` at the correct time.
+
+  // Define the callback for useAuthCommand after openOllamaModelDialog is available
+  const handleOllamaAuthSuccessAndOpenModelDialog = useCallback(() => {
+    logToFile(
+      '[App.tsx] Ollama auth type selected and checked. Opening model dialog.',
+    );
+    openOllamaModelDialog();
+  }, [openOllamaModelDialog]);
+
+  // useAuthCommand is now placed after useOllamaModelSelection and its callback definition
   const {
     isAuthDialogOpen,
     openAuthDialog,
@@ -241,12 +251,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     settings,
     setAuthError,
     config,
-    useCallback(() => {
-      logToFile(
-        '[App.tsx] Ollama auth type selected and checked. Opening model dialog.',
-      );
-      openOllamaModelDialog();
-    }, [openOllamaModelDialog]),
+    handleOllamaAuthSuccessAndOpenModelDialog, // Pass the memoized callback
   );
 
   useEffect(() => {
