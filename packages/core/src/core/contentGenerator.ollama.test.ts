@@ -262,7 +262,7 @@ describe('OllamaContentGenerator', () => {
           prompt: 'Embed this text',
         }),
       );
-      expect(result.embeddings?.[0]?.values).toEqual([0.1, 0.2, 0.3, 0.4]);
+      expect(result.embeddings[0]?.values).toEqual([0.1, 0.2, 0.3, 0.4]);
     });
     it('should handle string content for embeddings', async () => {
       const geminiRequest: EmbedContentParameters = {
@@ -279,7 +279,7 @@ describe('OllamaContentGenerator', () => {
       expect(mockOllamaClient.embeddings).toHaveBeenCalledWith(
         expect.objectContaining({ prompt: 'Embed this string directly' }),
       );
-      expect(result.embeddings?.[0]?.values).toEqual([0.5, 0.6]);
+      expect(result.embeddings[0]?.values).toEqual([0.5, 0.6]);
     });
 
     it('should throw if prompt text is empty for embeddings', async () => {
