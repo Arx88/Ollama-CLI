@@ -1,0 +1,6 @@
+# Este es el archivo de log para el uso de herramientas de OLLAMA.
+# Aquí se registrarán eventos relacionados con la invocación y respuesta de las herramientas.
+# Formato de ejemplo: YYYY-MM-DD HH:MM:SS,ms - LEVEL - Mensaje
+# Ejemplo: 2023-10-27 10:00:00,123 - INFO - Iniciando llamada a la herramienta 'mi_herramienta' con argumentos: {'arg1': 'valor1'}
+# Ejemplo: 2023-10-27 10:00:01,456 - INFO - Respuesta recibida de la herramienta 'mi_herramienta': {'resultado': 'exitoso'}
+# Ejemplo: 2023-10-27 10:00:02,789 - ERROR - Error al llamar a la herramienta 'mi_herramienta': TimeoutError('Tiempo de espera agotado')
