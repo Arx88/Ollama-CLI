@@ -1,0 +1,329 @@
+2025-06-27T02:10:48.838Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:48.839Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:49.303Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:49.303Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:49.688Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:49.688Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:50.082Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:50.082Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:50.945Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:50.945Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:51.568Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:51.569Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:51.869Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:51.870Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:51.882Z - INFO - OllamaContentGenerator initialized with model: test-model - Data: { generator: 'OllamaContentGenerator', model: 'test-model' }
+2025-06-27T02:10:51.883Z - INFO - Received generateContent request. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'generateContent',
+  model: 'test-model'
+}
+2025-06-27T02:10:51.884Z - INFO - Received non-streaming response from Ollama client. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'generateContent',
+  model: 'test-model',
+  ollama_response_done: true,
+  has_tool_calls: false
+}
+2025-06-27T02:10:51.890Z - INFO - OllamaContentGenerator initialized with model: test-model - Data: { generator: 'OllamaContentGenerator', model: 'test-model' }
+2025-06-27T02:10:51.891Z - INFO - Received generateContentStream request. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'generateContentStream',
+  model: 'test-model'
+}
+2025-06-27T02:10:51.891Z - INFO - Ollama stream marked as done. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'generateContentStream',
+  model: 'test-model',
+  chunk: 2,
+  ollama_chunk_done: true,
+  has_tool_calls: false,
+  reason: 'stop'
+}
+2025-06-27T02:10:51.892Z - INFO - Gemini stream processing complete. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'generateContentStream',
+  model: 'test-model',
+  total_chunks: 2
+}
+2025-06-27T02:10:51.893Z - INFO - OllamaContentGenerator initialized with model: test-model - Data: { generator: 'OllamaContentGenerator', model: 'test-model' }
+2025-06-27T02:10:51.893Z - INFO - Received embedContent request. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'embedContent',
+  model: 'test-model'
+}
+2025-06-27T02:10:51.894Z - INFO - Received embeddings from Ollama client. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'embedContent',
+  model: 'test-model',
+  embedding_length: 4
+}
+2025-06-27T02:10:51.895Z - INFO - OllamaContentGenerator initialized with model: test-model - Data: { generator: 'OllamaContentGenerator', model: 'test-model' }
+2025-06-27T02:10:51.895Z - INFO - Received embedContent request. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'embedContent',
+  model: 'test-model'
+}
+2025-06-27T02:10:51.895Z - INFO - Received embeddings from Ollama client. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'embedContent',
+  model: 'test-model',
+  embedding_length: 2
+}
+2025-06-27T02:10:51.896Z - INFO - OllamaContentGenerator initialized with model: test-model - Data: { generator: 'OllamaContentGenerator', model: 'test-model' }
+2025-06-27T02:10:51.897Z - INFO - Received embedContent request. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'embedContent',
+  model: 'test-model'
+}
+2025-06-27T02:10:51.897Z - ERROR - Prompt text is required for Ollama embedContent but was not found/extracted. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'embedContent',
+  model: 'test-model',
+  request: { model: 'test-model', contents: { parts: [] } }
+}
+2025-06-27T02:10:51.899Z - INFO - OllamaContentGenerator initialized with model: test-model - Data: { generator: 'OllamaContentGenerator', model: 'test-model' }
+2025-06-27T02:10:51.901Z - WARN - Ollama countTokens is using a very rough character-based estimation for model "test-model". This is not accurate. - Data: {
+  generator: 'OllamaContentGenerator',
+  method: 'countTokens',
+  model: 'test-model',
+  request_contents_type: 'object',
+  estimatedChars: 27,
+  estimatedTokens: 8
+}
+2025-06-27T02:10:51.912Z - INFO - OllamaContentGenerator initialized with model: test-model - Data: { generator: 'OllamaContentGenerator', model: 'test-model' }
+2025-06-27T02:10:51.913Z - INFO - OllamaContentGenerator initialized with model: ollama-model-from-cfg - Data: { generator: 'OllamaContentGenerator', model: 'ollama-model-from-cfg' }
+2025-06-27T02:10:52.859Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:52.859Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:52.896Z - INFO - Ollama generate request initiated - Data: {
+  requestId: '9747c5eb-4948-47fa-a5f4-84f8569bad65',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: false,
+  tool_count: 0
+}
+2025-06-27T02:10:52.896Z - INFO - Ollama generate non-streaming response received. - Data: {
+  requestId: '9747c5eb-4948-47fa-a5f4-84f8569bad65',
+  action: 'ollama_generate_non_stream_response',
+  model: 'test-model',
+  done: true,
+  tool_calls_count: 0
+}
+2025-06-27T02:10:52.898Z - INFO - Ollama generate request initiated - Data: {
+  requestId: '3e3d7552-7679-4ea7-a7ab-de01fc41e788',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: true,
+  tool_count: 0
+}
+2025-06-27T02:10:52.899Z - INFO - Ollama generate streaming response started. - Data: {
+  requestId: '3e3d7552-7679-4ea7-a7ab-de01fc41e788',
+  action: 'ollama_generate_stream_start',
+  model: 'test-model'
+}
+2025-06-27T02:10:52.900Z - INFO - Ollama generate stream ended. - Data: {
+  currentRequestId: '3e3d7552-7679-4ea7-a7ab-de01fc41e788',
+  action: 'ollama_generate_stream_end',
+  model: 'test-model'
+}
+2025-06-27T02:10:52.901Z - INFO - Ollama generate request initiated - Data: {
+  requestId: '9c66221a-a8ef-4cf4-b8da-1a2e05455e4f',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: true,
+  tool_count: 0
+}
+2025-06-27T02:10:52.901Z - INFO - Ollama generate streaming response started. - Data: {
+  requestId: '9c66221a-a8ef-4cf4-b8da-1a2e05455e4f',
+  action: 'ollama_generate_stream_start',
+  model: 'test-model'
+}
+2025-06-27T02:10:52.901Z - INFO - Ollama generate stream ended. - Data: {
+  currentRequestId: '9c66221a-a8ef-4cf4-b8da-1a2e05455e4f',
+  action: 'ollama_generate_stream_end',
+  model: 'test-model'
+}
+2025-06-27T02:10:52.921Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:52.921Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:54.265Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:54.266Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:55.156Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:55.157Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:55.630Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:55.630Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:55.695Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:55.695Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:57.730Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:57.731Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:58.336Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:58.336Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:59.077Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:59.077Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:59.494Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:59.495Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:10:59.799Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:10:59.799Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:08.569Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:08.569Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:08.692Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:08.692Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:09.107Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:09.107Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:10.534Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:10.534Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:10.695Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:10.696Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:10.731Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:10.732Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:12.367Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:12.367Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:12.619Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:12.619Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:13.627Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:13.628Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:13.770Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:13.770Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:13.805Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:13.805Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:14.965Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:14.965Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:15.050Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:15.050Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:16.896Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:16.897Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:17.719Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:17.720Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:18.307Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:18.307Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:12:18.340Z - INFO - Ollama generate request initiated - Data: {
+  requestId: '3e98ed60-4426-492d-9751-e411407963fd',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: false,
+  tool_count: 0
+}
+2025-06-27T02:12:18.340Z - INFO - Ollama generate non-streaming response received. - Data: {
+  requestId: '3e98ed60-4426-492d-9751-e411407963fd',
+  action: 'ollama_generate_non_stream_response',
+  model: 'test-model',
+  done: true,
+  tool_calls_count: 0
+}
+2025-06-27T02:12:18.341Z - INFO - Ollama generate request initiated - Data: {
+  requestId: 'f8f2e75f-03d3-4e56-a9c5-f08036b5e6ca',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: true,
+  tool_count: 0
+}
+2025-06-27T02:12:18.342Z - INFO - Ollama generate streaming response started. - Data: {
+  requestId: 'f8f2e75f-03d3-4e56-a9c5-f08036b5e6ca',
+  action: 'ollama_generate_stream_start',
+  model: 'test-model'
+}
+2025-06-27T02:12:18.343Z - INFO - Ollama generate stream ended. - Data: {
+  currentRequestId: 'f8f2e75f-03d3-4e56-a9c5-f08036b5e6ca',
+  action: 'ollama_generate_stream_end',
+  model: 'test-model'
+}
+2025-06-27T02:12:18.344Z - INFO - Ollama generate request initiated - Data: {
+  requestId: '2f1a64c4-6bf8-4858-a495-e7ec29e4dbfd',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: true,
+  tool_count: 0
+}
+2025-06-27T02:12:18.344Z - INFO - Ollama generate streaming response started. - Data: {
+  requestId: '2f1a64c4-6bf8-4858-a495-e7ec29e4dbfd',
+  action: 'ollama_generate_stream_start',
+  model: 'test-model'
+}
+2025-06-27T02:12:18.345Z - INFO - Ollama generate stream ended. - Data: {
+  currentRequestId: '2f1a64c4-6bf8-4858-a495-e7ec29e4dbfd',
+  action: 'ollama_generate_stream_end',
+  model: 'test-model'
+}
+2025-06-27T02:12:19.671Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:12:19.671Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:45.031Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:45.032Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:46.426Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:46.427Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:46.797Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:46.798Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:48.158Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:48.159Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:48.295Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:48.296Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:48.315Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:48.316Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:49.500Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:49.501Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:49.700Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:49.700Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:49.745Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:49.745Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:50.920Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:50.921Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:51.244Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:51.245Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:52.723Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:52.723Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:53.057Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:53.057Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:54.176Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:54.176Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:54.216Z - INFO - Ollama generate request initiated - Data: {
+  requestId: 'd668565b-9d60-42c4-8aa9-6ce69e9897b5',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: false,
+  tool_count: 0
+}
+2025-06-27T02:13:54.217Z - INFO - Ollama generate non-streaming response received. - Data: {
+  requestId: 'd668565b-9d60-42c4-8aa9-6ce69e9897b5',
+  action: 'ollama_generate_non_stream_response',
+  model: 'test-model',
+  done: true,
+  tool_calls_count: 0
+}
+2025-06-27T02:13:54.218Z - INFO - Ollama generate request initiated - Data: {
+  requestId: '7fca196a-008f-4eb8-a9e0-7e38d772b268',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: true,
+  tool_count: 0
+}
+2025-06-27T02:13:54.219Z - INFO - Ollama generate streaming response started. - Data: {
+  requestId: '7fca196a-008f-4eb8-a9e0-7e38d772b268',
+  action: 'ollama_generate_stream_start',
+  model: 'test-model'
+}
+2025-06-27T02:13:54.220Z - INFO - Ollama generate stream ended. - Data: {
+  currentRequestId: '7fca196a-008f-4eb8-a9e0-7e38d772b268',
+  action: 'ollama_generate_stream_end',
+  model: 'test-model'
+}
+2025-06-27T02:13:54.221Z - INFO - Ollama generate request initiated - Data: {
+  requestId: '76613e30-9e3d-4bcc-b0d9-7418caf69890',
+  action: 'ollama_generate_start',
+  model: 'test-model',
+  stream: true,
+  tool_count: 0
+}
+2025-06-27T02:13:54.221Z - INFO - Ollama generate streaming response started. - Data: {
+  requestId: '76613e30-9e3d-4bcc-b0d9-7418caf69890',
+  action: 'ollama_generate_stream_start',
+  model: 'test-model'
+}
+2025-06-27T02:13:54.221Z - INFO - Ollama generate stream ended. - Data: {
+  currentRequestId: '76613e30-9e3d-4bcc-b0d9-7418caf69890',
+  action: 'ollama_generate_stream_end',
+  model: 'test-model'
+}
+2025-06-27T02:13:55.325Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:55.325Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:56.521Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:56.522Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
+2025-06-27T02:13:56.789Z - INFO - SimpleToolLogger initialized. Log level set to: INFO (3)
+2025-06-27T02:13:56.789Z - INFO - Logs will be written to: /app/packages/core/LOGS/TOOLLOG.log
