@@ -146,48 +146,19 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   } = useThemeCommand(settings, setThemeError, addItem);
 
   const {
-    isAuthDialogOpen,
-    openAuthDialog,
-    handleAuthSelect,
-    handleAuthHighlight,
-    isAuthenticating,
-    cancelAuthentication,
-  } = useAuthCommand(
-    settings,
-    setAuthError,
-    config,
-    useCallback(() => {
-      logToFile(
-        '[App.tsx] Ollama auth type selected and checked. Opening model dialog.',
-      );
-      openOllamaModelDialog();
-    }, [openOllamaModelDialog]), // Dependency: openOllamaModelDialog
-  );
-
-  useEffect(() => {
-    if (settings.merged.selectedAuthType) {
-      const error = validateAuthMethod(settings.merged.selectedAuthType);
-      if (error) {
-        setAuthError(error);
-        openAuthDialog();
-      }
-    }
-  }, [settings.merged.selectedAuthType, openAuthDialog, setAuthError]);
-
-  const {
     isEditorDialogOpen,
     openEditorDialog,
     handleEditorSelect,
     exitEditorDialog,
   } = useEditorSettings(settings, setEditorError, addItem);
 
-  // Ollama Model Selection Hook
+  // Ollama Model Selection Hook - Moved up to be declared before useAuthCommand
   const {
     isOllamaModelDialogOpen,
     isLoadingModels: isLoadingOllamaModels,
     availableModels: availableOllamaModels,
     errorLoadingModels: errorLoadingOllamaModels,
-    openOllamaModelDialog,
+    openOllamaModelDialog, // Declared here
     onModelSelectedFromDialog,
     handleDialogClose,
   } = useOllamaModelSelection(
@@ -257,6 +228,37 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   // Removed the old useEffect that conditionally opened OllamaModelDialog.
   // The new callback `onOllamaAuthTypeSelectedAndChecked` passed to `useAuthCommand`
   // now handles triggering `openOllamaModelDialog` at the correct time.
+
+  // useAuthCommand is now placed after useOllamaModelSelection
+  const {
+    isAuthDialogOpen,
+    openAuthDialog,
+    handleAuthSelect,
+    handleAuthHighlight,
+    isAuthenticating,
+    cancelAuthentication,
+  } = useAuthCommand(
+    settings,
+    setAuthError,
+    config,
+    useCallback(() => {
+      logToFile(
+        '[App.tsx] Ollama auth type selected and checked. Opening model dialog.',
+      );
+      openOllamaModelDialog();
+    }, [openOllamaModelDialog]),
+  );
+
+  useEffect(() => {
+    if (settings.merged.selectedAuthType) {
+      const error = validateAuthMethod(settings.merged.selectedAuthType);
+      if (error) {
+        setAuthError(error);
+        openAuthDialog();
+      }
+    }
+  }, [settings.merged.selectedAuthType, openAuthDialog, setAuthError]);
+
 
   const toggleCorgiMode = useCallback(() => {
     setCorgiMode((prev) => !prev);
