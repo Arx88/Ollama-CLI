@@ -251,7 +251,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     settings,
     setAuthError,
     config,
-    handleOllamaAuthSuccessAndOpenModelDialog, // Pass the memoized callback
+    handleOllamaAuthSuccessAndOpenModelDialog,
+    isOllamaModelDialogOpen, // Pass the state here
   );
 
   useEffect(() => {

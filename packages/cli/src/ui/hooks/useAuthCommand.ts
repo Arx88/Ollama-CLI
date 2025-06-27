@@ -82,9 +82,10 @@ export const useAuthCommand = (
   settings: LoadedSettings,
   setAuthError: (error: string | null) => void,
   config: Config,
-  // Callback to signal that Ollama auth type was chosen and check was successful,
-  // so App.tsx can open the model selection dialog.
+  // Callback to signal that Ollama auth type was chosen and check was successful
   onOllamaAuthTypeSelectedAndChecked?: () => void,
+  // State from App.tsx to prevent re-triggering model dialog if already open
+  isOllamaModelDialogOpen?: boolean,
 ) => {
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(
     settings.merged.selectedAuthType === undefined,
@@ -117,10 +118,12 @@ export const useAuthCommand = (
             setAuthError,
           );
           // If performAuthFlow for Ollama was successful (it didn't throw or call openAuthDialog),
-          // it means Ollama is accessible. Now signal to open model dialog.
+          // it means Ollama is accessible. Now signal to open model dialog,
+          // but only if it's not already open (to break potential loops).
           if (
             settings.merged.selectedAuthType === AuthType.USE_OLLAMA &&
-            !isAuthDialogOpen // Ensure auth dialog is closed
+            !isAuthDialogOpen && // Ensure auth dialog is closed
+            !isOllamaModelDialogOpen // Check if model dialog is already open
           ) {
             onOllamaAuthTypeSelectedAndChecked?.();
           }
@@ -171,7 +174,8 @@ export const useAuthCommand = (
     setAuthError,
     openAuthDialog,
     onOllamaAuthTypeSelectedAndChecked,
-    isAuthenticating, // Added isAuthenticating to dependencies
+    isAuthenticating,
+    isOllamaModelDialogOpen, // Added to dependencies
   ]);
 
   const handleAuthSelect = useCallback(
