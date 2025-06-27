@@ -62,7 +62,7 @@ describe('OllamaContentGenerator', () => {
   let mockOllamaClient: OllamaClient;
   let ollamaGenerator: OllamaContentGenerator;
   let mockConfig: Config;
-  let toolLoggerWarnSpy: vi.MockInstance;
+  let toolLoggerWarnSpy: ReturnType<typeof vi.spyOn>; // Changed type
 
   beforeEach(() => {
     // Reset mocks for Config and OllamaClient to ensure clean state for each test
@@ -104,6 +104,7 @@ describe('OllamaContentGenerator', () => {
   describe('generateContent', () => {
     it('should transform request, call ollamaClient.generate, and transform response', async () => {
       const geminiRequest: GenerateContentParameters = {
+        model: 'test-model-instance', // Added to satisfy GenerateContentRequest typing if model is passed through
         contents: [{ role: 'user', parts: [{ text: 'Hello Ollama' }] }],
       };
       const ollamaApiResponse: OllamaGenerateResponse = {
@@ -137,6 +138,7 @@ describe('OllamaContentGenerator', () => {
   describe('generateContentStream', () => {
     it('should handle streaming response from ollamaClient.generate', async () => {
       const geminiRequest: GenerateContentParameters = {
+        model: 'test-model-instance', // Added
         contents: [{ role: 'user', parts: [{ text: 'Stream test' }] }],
       };
       const mockStreamChunks: OllamaGenerateResponse[] = [
@@ -174,6 +176,7 @@ describe('OllamaContentGenerator', () => {
   describe('embedContent', () => {
     it('should call ollamaClient.embeddings and return formatted response', async () => {
       const geminiRequest: EmbedContentParameters = {
+        model: 'test-model-instance', // Added
         contents: { role: 'user', parts: [{ text: 'Embed this text' }] },
       };
       const ollamaApiResponse: OllamaEmbeddingsResponse = {
@@ -194,6 +197,7 @@ describe('OllamaContentGenerator', () => {
 
     it('should handle string content for embeddings', async () => {
       const geminiRequest: EmbedContentParameters = {
+        model: 'test-model-instance', // Added
         contents: 'Embed this string directly',
       };
       const ollamaApiResponse: OllamaEmbeddingsResponse = { embedding: [0.5, 0.6] };
@@ -206,7 +210,7 @@ describe('OllamaContentGenerator', () => {
     });
 
     it('should throw if prompt text is empty for embeddings', async () => {
-      const geminiRequest: EmbedContentParameters = { contents: { parts: [] } };
+      const geminiRequest: EmbedContentParameters = { model: 'test-model-instance', contents: { parts: [] } }; // Added model
       await expect(ollamaGenerator.embedContent(geminiRequest)).rejects.toThrow(
         'Prompt text is required for Ollama embedContent.',
       );
@@ -216,6 +220,7 @@ describe('OllamaContentGenerator', () => {
   describe('countTokens', () => {
     it('should return estimated token count and log warning', async () => {
       const geminiRequest: CountTokensParameters = {
+        model: 'test-model-instance', // Added
         contents: [{ role: 'user', parts: [{ text: 'Tokenize this for me please' }] }],
       };
       const expectedEstimatedTokens = Math.ceil('Tokenize this for me please'.length / 3.5);
