@@ -156,13 +156,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     settings,
     setAuthError,
     config,
-    // New callback for when Ollama auth type is selected and pre-check is done
-    () => {
+    useCallback(() => {
       logToFile(
         '[App.tsx] Ollama auth type selected and checked. Opening model dialog.',
       );
-      openOllamaModelDialog(); // Open the Ollama model selection dialog
-    },
+      openOllamaModelDialog();
+    }, [openOllamaModelDialog]), // Dependency: openOllamaModelDialog
   );
 
   useEffect(() => {
