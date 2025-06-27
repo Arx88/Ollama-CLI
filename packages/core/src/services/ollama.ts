@@ -118,18 +118,15 @@ export class OllamaClient {
     params: OllamaGenerateParams,
   ): Promise<OllamaGenerateResponse | AsyncGenerator<OllamaGenerateResponse>> {
     const requestId = randomUUID();
-    toolLogger.info(
-      {
-        requestId,
-        action: 'ollama_generate_start',
-        model: params.model,
-        stream: params.stream,
-        tool_count: params.tools?.length || 0,
-      },
-      'Ollama generate request initiated',
-    );
+    toolLogger.info('Ollama generate request initiated', {
+      requestId,
+      action: 'ollama_generate_start',
+      model: params.model,
+      stream: params.stream,
+      tool_count: params.tools?.length || 0,
+    });
     if (params.tools && params.tools.length > 0) {
-      toolLogger.debug({ requestId, tools: params.tools }, 'Ollama generate tool definitions');
+      toolLogger.debug('Ollama generate tool definitions', { requestId, tools: params.tools });
     }
 
     const url = `${this.baseUrl}/api/generate`;
@@ -158,9 +155,15 @@ export class OllamaClient {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(
-        `Ollama API Error (${response.status} ${response.statusText}): ${errorBody}`,
-      );
+      // Log error with the simple logger: toolLogger.error(message, data)
+      toolLogger.error(`Ollama API Error: ${response.status} ${response.statusText}`, {
+        requestId,
+        action: 'ollama_generate_error',
+        status: response.status,
+        statusText: response.statusText,
+        errorBody,
+        model: params.model,
+      });
       throw new Error(
         `Ollama API request failed: ${response.status} ${response.statusText} - ${errorBody}`,
       );
@@ -168,18 +171,15 @@ export class OllamaClient {
 
     if (params.stream === false) {
       const responseJson = (await response.json()) as OllamaGenerateResponse;
-      toolLogger.info(
-        {
-          requestId,
-          action: 'ollama_generate_non_stream_response',
-          model: params.model,
-          done: responseJson.done,
-          tool_calls_count: responseJson.tool_calls?.length || 0,
-        },
-        'Ollama generate non-streaming response received.',
-      );
+      toolLogger.info('Ollama generate non-streaming response received.', {
+        requestId,
+        action: 'ollama_generate_non_stream_response',
+        model: params.model,
+        done: responseJson.done,
+        tool_calls_count: responseJson.tool_calls?.length || 0,
+      });
       if (responseJson.tool_calls && responseJson.tool_calls.length > 0) {
-        toolLogger.debug({ requestId, tool_calls: responseJson.tool_calls }, 'Non-streaming tool_calls content');
+        toolLogger.debug('Non-streaming tool_calls content', { requestId, tool_calls: responseJson.tool_calls });
       }
       // if (this.config.getDebugMode()) { // Original debug logging
       //   console.debug(
@@ -190,14 +190,19 @@ export class OllamaClient {
       return responseJson;
     } else {
       // Handle streaming response
-      toolLogger.info(
-        { requestId, action: 'ollama_generate_stream_start', model: params.model },
-        'Ollama generate streaming response started.',
-      );
+      toolLogger.info('Ollama generate streaming response started.', {
+        requestId,
+        action: 'ollama_generate_stream_start',
+        model: params.model,
+      });
       // Pass requestId and model for logging within the generator
       async function* streamGenerator(currentRequestId: string, currentModel: string): AsyncGenerator<OllamaGenerateResponse> {
         if (!response.body) {
-          toolLogger.error({ currentRequestId, action: 'ollama_stream_error', model: currentModel }, 'Response body is null for streaming request.');
+          toolLogger.error('Response body is null for streaming request.', {
+            currentRequestId,
+            action: 'ollama_stream_error',
+            model: currentModel,
+          });
           throw new Error('Response body is null for streaming request.');
         }
         const reader = response.body.getReader();
@@ -211,22 +216,36 @@ export class OllamaClient {
               // Process any remaining data in buffer
               try {
                 const jsonChunk = JSON.parse(buffer.trim()) as OllamaGenerateResponse;
-                toolLogger.debug(
-                  { currentRequestId, action: 'ollama_stream_chunk', model: currentModel, done: jsonChunk.done, final_chunk_buffer: true, tool_calls_count: jsonChunk.tool_calls?.length || 0 },
-                  'Ollama generate final stream chunk from buffer processed.',
-                );
+                toolLogger.debug('Ollama generate final stream chunk from buffer processed.', {
+                  currentRequestId,
+                  action: 'ollama_stream_chunk',
+                  model: currentModel,
+                  done: jsonChunk.done,
+                  final_chunk_buffer: true,
+                  tool_calls_count: jsonChunk.tool_calls?.length || 0,
+                });
                 if (jsonChunk.tool_calls && jsonChunk.tool_calls.length > 0) {
-                    toolLogger.debug({ currentRequestId, tool_calls: jsonChunk.tool_calls }, 'Final stream chunk (from buffer) tool_calls content');
+                  toolLogger.debug('Final stream chunk (from buffer) tool_calls content', {
+                    currentRequestId,
+                    tool_calls: jsonChunk.tool_calls,
+                  });
                 }
                 yield jsonChunk;
               } catch (e: any) {
-                toolLogger.error(
-                  { currentRequestId, action: 'ollama_stream_parse_error', model: currentModel, error: e.message, buffer },
-                  'Error parsing final JSON chunk in stream',
-                );
+                toolLogger.error('Error parsing final JSON chunk in stream', {
+                  currentRequestId,
+                  action: 'ollama_stream_parse_error',
+                  model: currentModel,
+                  error: e.message,
+                  buffer,
+                });
               }
             }
-            toolLogger.info({ currentRequestId, action: 'ollama_generate_stream_end', model: currentModel }, 'Ollama generate stream ended.');
+            toolLogger.info('Ollama generate stream ended.', {
+              currentRequestId,
+              action: 'ollama_generate_stream_end',
+              model: currentModel,
+            });
             break;
           }
           buffer += decoder.decode(value, { stream: true });
@@ -237,19 +256,28 @@ export class OllamaClient {
             if (line) {
               try {
                 const jsonChunk = JSON.parse(line) as OllamaGenerateResponse;
-                toolLogger.debug(
-                  { currentRequestId, action: 'ollama_stream_chunk', model: currentModel, done: jsonChunk.done, tool_calls_count: jsonChunk.tool_calls?.length || 0 },
-                  'Ollama generate stream chunk processed.',
-                );
+                toolLogger.debug('Ollama generate stream chunk processed.', {
+                  currentRequestId,
+                  action: 'ollama_stream_chunk',
+                  model: currentModel,
+                  done: jsonChunk.done,
+                  tool_calls_count: jsonChunk.tool_calls?.length || 0,
+                });
                 if (jsonChunk.tool_calls && jsonChunk.tool_calls.length > 0) {
-                    toolLogger.debug({ currentRequestId, tool_calls: jsonChunk.tool_calls }, 'Stream chunk tool_calls content');
+                  toolLogger.debug('Stream chunk tool_calls content', {
+                    currentRequestId,
+                    tool_calls: jsonChunk.tool_calls,
+                  });
                 }
                 yield jsonChunk;
               } catch (e: any) {
-                toolLogger.error(
-                  { currentRequestId, action: 'ollama_stream_parse_error', model: currentModel, error: e.message, line },
-                  'Error parsing JSON chunk in stream',
-                );
+                toolLogger.error('Error parsing JSON chunk in stream', {
+                  currentRequestId,
+                  action: 'ollama_stream_parse_error',
+                  model: currentModel,
+                  error: e.message,
+                  line,
+                });
               }
             }
           }
