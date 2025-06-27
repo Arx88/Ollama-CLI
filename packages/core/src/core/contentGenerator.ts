@@ -30,6 +30,7 @@ import {
   OllamaGenerateResponse,
 } from '../services/ollama.js'; // Import Ollama types
 import toolLogger from '../utils/toolLogger.js'; // Import the logger
+import { Tool } from '@google/genai'; // Ensure Tool is imported if used in ExtendedGenerateContentParameters
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -127,6 +128,11 @@ export async function createContentGeneratorConfig(
   return contentGeneratorConfig;
 }
 
+// Define an extended interface for GenerateContentParameters to include 'tools'
+interface ExtendedGenerateContentParameters extends GenerateContentParameters {
+  tools?: Tool[];
+}
+
 // Placeholder for Ollama Content Generator
 // This would need to implement the ContentGenerator interface
 // and interact with the Ollama API (likely via OllamaClient).
@@ -143,15 +149,10 @@ export class OllamaContentGenerator implements ContentGenerator {
       { generator: 'OllamaContentGenerator', model: this.modelName },
       `OllamaContentGenerator initialized with model: ${this.modelName}`,
     );
-    // if (process.env.GEMINI_DEBUG === 'true') {
-    //   console.log(
-    //     `OllamaContentGenerator initialized with model: ${this.modelName}`,
-    //   );
-    // }
   }
 
   private paramsFromGeminiRequest(
-    request: GenerateContentParameters,
+    request: ExtendedGenerateContentParameters, // Use the extended interface
   ): OllamaGenerateParams {
     const loggerContext = {
       generator: 'OllamaContentGenerator',
@@ -201,36 +202,44 @@ export class OllamaContentGenerator implements ContentGenerator {
     }
     // (e.g. first message with role 'system' or a dedicated field if available)
 
-    // Map tools if present in Gemini request (assuming request.tools exists and has a compatible format)
-    // This part is speculative based on typical Gemini API structures.
-    // The actual `request` object from `@google/genai` might not have a `tools` field directly.
-    // It's usually part of `GenerateContentRequest` which wraps `GenerateContentParameters`.
-    // For now, let's assume `request.tools` could be passed.
-    let ollamaTools;
+    // Define the structure of a successfully mapped Ollama tool for type guarding
+    type MappedOllamaTool = {
+      type: 'function';
+      function: {
+        name: string;
+        description: string;
+        parameters: Record<string, unknown>;
+      };
+    };
+
+    let ollamaToolsFormatted: OllamaGenerateParams['tools'] | undefined = undefined;
     if (request.tools && Array.isArray(request.tools)) {
-      // Assuming request.tools is an array of Gemini Tool objects
-      // We need to map this to the OllamaGenerateParams.tools format
-      ollamaTools = request.tools.map((tool: any) => { // Use 'any' for now, replace with actual Gemini Tool type if available
-        if (tool.functionDeclarations && tool.functionDeclarations.length > 0) {
-          // Assuming we take the first function declaration if multiple exist per tool
-          const funcDecl = tool.functionDeclarations[0];
-          return {
-            type: 'function',
-            function: {
-              name: funcDecl.name,
-              description: funcDecl.description,
-              parameters: funcDecl.parameters, // Assuming parameters is a JSON schema
-            },
-          };
-        }
-        return null; // Or handle error/skip
-      }).filter(t => t !== null);
-      toolLogger.debug({ ...loggerContext, tool_count: ollamaTools.length }, 'Mapped Gemini tools to Ollama format.');
-      if (ollamaTools.length > 0) {
-        toolLogger.trace({ ...loggerContext, ollamaTools }, 'Ollama tool definitions.');
+      ollamaToolsFormatted = request.tools
+        .map((tool: Tool): MappedOllamaTool | null => {
+          if (tool.functionDeclarations && tool.functionDeclarations.length > 0) {
+            const funcDecl = tool.functionDeclarations[0];
+            if (funcDecl && funcDecl.name) {
+              return {
+                type: 'function' as const,
+                function: {
+                  name: funcDecl.name,
+                  description: funcDecl.description || '',
+                  parameters: (funcDecl.parameters as Record<string, unknown>) || {},
+                },
+              };
+            }
+          }
+          return null;
+        })
+        .filter((t): t is MappedOllamaTool => t !== null);
+
+      if (ollamaToolsFormatted.length > 0) {
+        toolLogger.debug({ ...loggerContext, tool_count: ollamaToolsFormatted.length }, 'Mapped Gemini tools to Ollama format.');
+        toolLogger.trace({ ...loggerContext, ollamaTools: ollamaToolsFormatted }, 'Ollama tool definitions.');
+      } else {
+        ollamaToolsFormatted = undefined; // Ensure it's undefined if no tools were successfully mapped
       }
     }
-
 
     const params: OllamaGenerateParams = {
       model: this.modelName,
@@ -238,9 +247,9 @@ export class OllamaContentGenerator implements ContentGenerator {
       system: undefined, // Placeholder for system prompt
       template: undefined, // Placeholder for template
       context: this.currentContext, // Pass context from previous turn
-      stream: false, // Explicitly false for this method, will be overridden by caller if needed
+      stream: false, // Will be overridden by caller if needed for streaming
       options: Object.keys(options).length > 0 ? options : undefined,
-      tools: ollamaTools, // Add mapped tools
+      tools: ollamaToolsFormatted,
     };
     toolLogger.trace({ ...loggerContext, params }, 'Ollama params created.');
     return params;
@@ -254,7 +263,7 @@ export class OllamaContentGenerator implements ContentGenerator {
       generator: 'OllamaContentGenerator',
       method: 'responseToGeminiResponse',
       model: this.modelName,
-      requestId,
+      requestId, // Log if provided
       ollama_done: ollamaResponse.done,
       ollama_done_reason: ollamaResponse.done_reason,
       has_tool_calls: !!(ollamaResponse.tool_calls && ollamaResponse.tool_calls.length > 0),
@@ -306,7 +315,7 @@ export class OllamaContentGenerator implements ContentGenerator {
       parts = ollamaResponse.tool_calls.map((toolCall) => {
         const functionCallValue: import('@google/genai').FunctionCall = {
           name: toolCall.function.name,
-          args: toolCall.function.parameters, // Ollama gives parameters, Gemini expects args
+          args: toolCall.function.parameters, // Ollama uses 'parameters', Gemini uses 'args'
         };
         mappedFunctionCalls.push(functionCallValue);
         toolLogger.trace({ ...loggerContext, mapped_function_call: functionCallValue }, 'Mapped Ollama tool_call to Gemini FunctionCall part.');
@@ -354,7 +363,7 @@ export class OllamaContentGenerator implements ContentGenerator {
   }
 
   async generateContent(
-    request: GenerateContentParameters,
+    request: ExtendedGenerateContentParameters, // Use extended interface
   ): Promise<GenerateContentResponse> {
     const loggerContext = {
       generator: 'OllamaContentGenerator',
@@ -364,32 +373,31 @@ export class OllamaContentGenerator implements ContentGenerator {
     toolLogger.info(loggerContext, 'Received generateContent request.');
     toolLogger.debug({ ...loggerContext, request }, 'Full generateContent request details.');
 
-
     const ollamaParams = this.paramsFromGeminiRequest(request);
-    ollamaParams.stream = false; // Ensure it's non-streaming
+    ollamaParams.stream = false;
     toolLogger.debug({ ...loggerContext, ollamaParams }, 'Parameters prepared for non-streaming Ollama call.');
 
     try {
+      // The ollamaClient.generate method now includes a requestId in its logs.
+      // We can capture it if we modify generate to return it, or just rely on correlated logging.
+      // For now, no direct requestId is passed to responseToGeminiResponse.
       const ollamaResponse = (await this.ollamaClient.generate(
         ollamaParams,
-      )) as OllamaGenerateResponse; // Type assertion for non-streaming
-      // The ollamaClient.generate method now includes a requestId in its logs.
-      // We don't have direct access to that specific requestId here unless we modify generate to return it.
-      // For now, the logs from ollamaClient will have their own requestId.
+      )) as OllamaGenerateResponse;
+
       toolLogger.info(
         { ...loggerContext, ollama_response_done: ollamaResponse.done, has_tool_calls: !!(ollamaResponse.tool_calls && ollamaResponse.tool_calls.length > 0) },
         'Received non-streaming response from Ollama client.',
       );
-
-      return this.responseToGeminiResponse(ollamaResponse /*, pass requestId if available */);
+      return this.responseToGeminiResponse(ollamaResponse);
     } catch (error) {
       toolLogger.error({ ...loggerContext, error, ollamaParams }, 'Error during non-streaming Ollama generate call.');
-      throw error; // Re-throw the error after logging
+      throw error;
     }
   }
 
   async generateContentStream(
-    request: GenerateContentParameters,
+    request: ExtendedGenerateContentParameters, // Use extended interface
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     const loggerContext = {
       generator: 'OllamaContentGenerator',
@@ -400,57 +408,42 @@ export class OllamaContentGenerator implements ContentGenerator {
     toolLogger.debug({ ...loggerContext, request }, 'Full generateContentStream request details.');
 
     const ollamaParams = this.paramsFromGeminiRequest(request);
-    ollamaParams.stream = true; // Ensure it's streaming
+    ollamaParams.stream = true;
     toolLogger.debug({ ...loggerContext, ollamaParams }, 'Parameters prepared for streaming Ollama call.');
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this; // To access 'this' inside the async generator
+    const self = this;
+    let streamOverallRequestId: string | undefined; // To potentially capture requestId from ollamaClient if it were returned by generate()
 
     async function* geminiStream(): AsyncGenerator<GenerateContentResponse> {
-      let streamRequestId: string | undefined; // To capture requestId from the first chunk if possible (though not standard from Ollama client)
       let finalOllamaResponse: OllamaGenerateResponse | null = null;
       let chunkCount = 0;
 
       try {
         const stream = (await self.ollamaClient.generate(
           ollamaParams,
-        )) as AsyncGenerator<OllamaGenerateResponse>; // Type assertion for streaming
+        )) as AsyncGenerator<OllamaGenerateResponse>;
 
         for await (const ollamaChunk of stream) {
           chunkCount++;
-          // Attempt to get a requestId if the ollamaClient's logged one was somehow available via the chunk (unlikely)
-          // For now, rely on ollamaClient's internal logging of its own requestId.
+          // If ollamaClient.generate could return requestId, we'd use it here.
+          // For now, logs from ollamaClient will have their own, logs here will use loggerContext.
           const chunkLoggerContext = { ...loggerContext, chunk: chunkCount, ollama_chunk_done: ollamaChunk.done, has_tool_calls: !!(ollamaChunk.tool_calls && ollamaChunk.tool_calls.length > 0) };
           toolLogger.debug(chunkLoggerContext, 'Processing Ollama stream chunk.');
+
           if (ollamaChunk.tool_calls && ollamaChunk.tool_calls.length > 0) {
             toolLogger.info({ ...chunkLoggerContext, tool_calls: ollamaChunk.tool_calls }, 'Tool calls received in stream chunk.');
-            // IMPORTANT: Gemini's API typically expects tool calls as a single block, not streamed.
-            // If Ollama streams tool calls, this part of the mapping might be problematic for direct Gemini compatibility.
-            // The current `responseToGeminiResponse` handles tool_calls, but it's usually for a complete response.
-            // For streaming, we're primarily yielding text. If a chunk contains *only* tool_calls and `done` is true,
-            // it might be processed by `responseToGeminiResponse` after the loop.
-            // If tool_calls appear mid-stream with text, this needs careful handling.
+            // Handling of tool calls in stream is complex. Gemini typically expects them as a single block.
+            // For now, we will map them if they appear in a chunk.
           }
 
+          finalOllamaResponse = ollamaChunk;
 
-          finalOllamaResponse = ollamaChunk; // Keep track of the latest chunk
-
-          // For streaming, we primarily focus on text parts.
-          // If a chunk has tool_calls and done is true, it might be better handled by a final responseToGeminiResponse call.
-          // However, the current loop structure yields per chunk.
           const currentText = ollamaChunk.response;
-          const currentParts: Array<import('@google/genai').Part> = currentText
-            ? [{ text: currentText }]
-            : [];
-
-          // If there are tool calls in the current chunk, we need to decide how to represent them.
-          // Gemini typically sends functionCall in a non-streaming way or as the final part of a stream.
-          // For now, if tool_calls are present in a chunk, we will map them.
+          let partsForChunk: Array<import('@google/genai').Part> = currentText ? [{ text: currentText }] : [];
           let functionCallsInChunk: Array<import('@google/genai').FunctionCall> | undefined = undefined;
-          let partsForChunk: Array<import('@google/genai').Part> = currentParts;
 
           if (ollamaChunk.tool_calls && ollamaChunk.tool_calls.length > 0) {
-            toolLogger.info({ ...chunkLoggerContext, tool_call_count: ollamaChunk.tool_calls.length }, "Tool calls found in Ollama stream chunk.");
             const mappedFCs: Array<import('@google/genai').FunctionCall> = [];
             partsForChunk = ollamaChunk.tool_calls.map(tc => {
               const fc: import('@google/genai').FunctionCall = { name: tc.function.name, args: tc.function.parameters };
@@ -458,44 +451,24 @@ export class OllamaContentGenerator implements ContentGenerator {
               return { functionCall: fc };
             });
             functionCallsInChunk = mappedFCs;
-            // If tool calls are present, Gemini usually doesn't expect a 'text' field in the candidate.
-            // However, Ollama might send both. We prioritize tool calls for `parts` if they exist.
           }
-
 
           const partialGeminiResponse: GenerateContentResponse = {
             candidates: [
               {
-                content: {
-                  parts: partsForChunk,
-                  role: 'model',
-                },
-                finishReason: ollamaChunk.done
-                  ? self.mapDoneReason(ollamaChunk.done_reason)
-                  : FinishReason.FINISH_REASON_UNSPECIFIED,
+                content: { parts: partsForChunk, role: 'model' },
+                finishReason: ollamaChunk.done ? self.mapDoneReason(ollamaChunk.done_reason) : FinishReason.FINISH_REASON_UNSPECIFIED,
                 index: 0,
-                safetyRatings: [
-                  {
-                    category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
-                    probability: HarmProbability.NEGLIGIBLE,
-                  },
-                ],
+                safetyRatings: [{ category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmProbability.NEGLIGIBLE }],
                 tokenCount: ollamaChunk.eval_count,
               },
             ],
             promptFeedback: {
-              safetyRatings: [
-                {
-                  category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
-                  probability: HarmProbability.NEGLIGIBLE,
-                },
-              ],
+              safetyRatings: [{ category: HarmCategory.HARM_CATEGORY_UNSPECIFIED, probability: HarmProbability.NEGLIGIBLE }],
             },
-            text: functionCallsInChunk ? undefined : currentText, // Text is undefined if function calls are present
+            text: functionCallsInChunk ? undefined : currentText,
             functionCalls: functionCallsInChunk,
-            data: undefined,
-            executableCode: undefined,
-            codeExecutionResult: undefined,
+            data: undefined, executableCode: undefined, codeExecutionResult: undefined,
           };
 
           toolLogger.trace({ ...chunkLoggerContext, partialGeminiResponse }, 'Yielding partial Gemini response from stream.');
@@ -508,16 +481,14 @@ export class OllamaContentGenerator implements ContentGenerator {
         }
       } catch (error) {
         toolLogger.error({ ...loggerContext, error, ollamaParams }, 'Error during Ollama generate stream call.');
-        throw error; // Re-throw
+        throw error;
       }
 
-
-      // After the stream is done, update the context from the final response
       if (finalOllamaResponse && finalOllamaResponse.context) {
         self.currentContext = finalOllamaResponse.context;
         toolLogger.debug({ ...loggerContext, context_length: finalOllamaResponse.context.length }, 'Updated Ollama context from final stream response.');
       }
-       toolLogger.info({ ...loggerContext, total_chunks: chunkCount }, 'Gemini stream processing complete.');
+      toolLogger.info({ ...loggerContext, total_chunks: chunkCount }, 'Gemini stream processing complete.');
     }
     return geminiStream();
   }
@@ -590,23 +561,17 @@ export class OllamaContentGenerator implements ContentGenerator {
     // This is NOT accurate and should be replaced if a better method is found.
     const estimatedTokens = Math.ceil(numChars / 3.5);
 
-    // console.warn(
-    //   `Ollama countTokens is using a very rough character-based estimation for model "${this.modelName}". ` +
-    //     `Request: ${JSON.stringify(request)}. Estimated chars: ${numChars}, Estimated tokens: ${estimatedTokens}. ` +
-    //     `This is not accurate.`,
-    // );
     toolLogger.warn(
       {
         generator: 'OllamaContentGenerator',
         method: 'countTokens',
         model: this.modelName,
-        request,
+        request_contents_type: typeof request.contents,
         estimatedChars: numChars,
         estimatedTokens,
       },
-      `Ollama countTokens is using a very rough character-based estimation. This is not accurate.`,
+      `Ollama countTokens is using a very rough character-based estimation for model "${this.modelName}". This is not accurate.`,
     );
-
 
     return { totalTokens: estimatedTokens };
   }
@@ -663,7 +628,6 @@ export class OllamaContentGenerator implements ContentGenerator {
     const ollamaParams: OllamaEmbeddingsParams = {
       model: this.modelName,
       prompt: promptText,
-      // options: undefined, // Add if specific options are needed for embeddings
     };
     toolLogger.debug({ ...loggerContext, ollamaParams }, 'Parameters prepared for Ollama embeddings call.');
 
@@ -673,11 +637,7 @@ export class OllamaContentGenerator implements ContentGenerator {
       toolLogger.info({ ...loggerContext, embedding_length: ollamaResponse.embedding?.length }, 'Received embeddings from Ollama client.');
 
       return {
-        embeddings: [
-          {
-            values: ollamaResponse.embedding,
-          },
-        ],
+        embeddings: [ { values: ollamaResponse.embedding } ],
       };
     } catch (error) {
       toolLogger.error({ ...loggerContext, error, ollamaParams }, 'Error during Ollama embeddings call.');

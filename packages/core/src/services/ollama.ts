@@ -79,8 +79,9 @@ export class OllamaClient {
 
     if (!response.ok) {
       const errorBody = await response.text();
+      // Removed toolLogger.error from here as requestId and params are not in scope
       console.error(
-        `Ollama API Error (${response.status} ${response.statusText}): ${errorBody}`,
+        `Ollama API Error in request() (${response.status} ${response.statusText}): ${errorBody}`,
       );
       throw new Error(
         `Ollama API request failed: ${response.status} ${response.statusText} - ${errorBody}`,
@@ -116,16 +117,20 @@ export class OllamaClient {
   async generate(
     params: OllamaGenerateParams,
   ): Promise<OllamaGenerateResponse | AsyncGenerator<OllamaGenerateResponse>> {
-    const requestId = crypto.randomUUID(); // Generate a unique ID for this request
+    const requestId = randomUUID();
     toolLogger.info(
-      { requestId, action: 'generate_start', model: params.model, stream: params.stream },
-      `Ollama generate request received. Tools: ${params.tools ? params.tools.length : 0}`,
+      {
+        requestId,
+        action: 'ollama_generate_start',
+        model: params.model,
+        stream: params.stream,
+        tool_count: params.tools?.length || 0,
+      },
+      'Ollama generate request initiated',
     );
-    // Log only tool definitions, not the full prompt for brevity unless in debug
     if (params.tools && params.tools.length > 0) {
-      toolLogger.debug({ requestId, tools: params.tools }, 'Tool definitions for generate request');
+      toolLogger.debug({ requestId, tools: params.tools }, 'Ollama generate tool definitions');
     }
-
 
     const url = `${this.baseUrl}/api/generate`;
     const options: RequestInit = {
@@ -153,20 +158,9 @@ export class OllamaClient {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      toolLogger.error(
-        {
-          requestId,
-          action: 'generate_error',
-          status: response.status,
-          statusText: response.statusText,
-          errorBody,
-          model: params.model,
-        },
+      console.error(
         `Ollama API Error (${response.status} ${response.statusText}): ${errorBody}`,
       );
-      // console.error(
-      //   `Ollama API Error (${response.status} ${response.statusText}): ${errorBody}`,
-      // );
       throw new Error(
         `Ollama API request failed: ${response.status} ${response.statusText} - ${errorBody}`,
       );
@@ -177,17 +171,17 @@ export class OllamaClient {
       toolLogger.info(
         {
           requestId,
-          action: 'generate_non_stream_response',
+          action: 'ollama_generate_non_stream_response',
           model: params.model,
           done: responseJson.done,
-          tool_calls: responseJson.tool_calls?.length || 0,
+          tool_calls_count: responseJson.tool_calls?.length || 0,
         },
         'Ollama generate non-streaming response received.',
       );
       if (responseJson.tool_calls && responseJson.tool_calls.length > 0) {
-        toolLogger.debug({ requestId, tool_calls: responseJson.tool_calls }, 'Non-streaming tool calls received');
+        toolLogger.debug({ requestId, tool_calls: responseJson.tool_calls }, 'Non-streaming tool_calls content');
       }
-      // if (this.config.getDebugMode()) {
+      // if (this.config.getDebugMode()) { // Original debug logging
       //   console.debug(
       //     'Ollama Generate Response (non-streaming):',
       //     JSON.stringify(responseJson, null, 2),
@@ -197,17 +191,13 @@ export class OllamaClient {
     } else {
       // Handle streaming response
       toolLogger.info(
-        { requestId, action: 'generate_stream_start', model: params.model },
+        { requestId, action: 'ollama_generate_stream_start', model: params.model },
         'Ollama generate streaming response started.',
       );
-      async function* streamGenerator(
-        // config: Config, // config is no longer used here, logger is used directly
-        logger: typeof toolLogger, // Pass logger instance
-        logRequestId: string, // Pass request ID for consistent logging
-        currentModel: string, // Pass model name for consistent logging
-      ): AsyncGenerator<OllamaGenerateResponse> {
+      // Pass requestId and model for logging within the generator
+      async function* streamGenerator(currentRequestId: string, currentModel: string): AsyncGenerator<OllamaGenerateResponse> {
         if (!response.body) {
-          logger.error({ logRequestId, action: 'generate_stream_error', model: currentModel }, 'Response body is null for streaming request.');
+          toolLogger.error({ currentRequestId, action: 'ollama_stream_error', model: currentModel }, 'Response body is null for streaming request.');
           throw new Error('Response body is null for streaming request.');
         }
         const reader = response.body.getReader();
@@ -221,33 +211,22 @@ export class OllamaClient {
               // Process any remaining data in buffer
               try {
                 const jsonChunk = JSON.parse(buffer.trim()) as OllamaGenerateResponse;
-                logger.debug(
-                  { logRequestId, action: 'generate_stream_chunk', model: currentModel, done: jsonChunk.done, final_chunk: true, tool_calls: jsonChunk.tool_calls?.length || 0 },
-                  'Ollama generate final stream chunk processed from buffer.',
+                toolLogger.debug(
+                  { currentRequestId, action: 'ollama_stream_chunk', model: currentModel, done: jsonChunk.done, final_chunk_buffer: true, tool_calls_count: jsonChunk.tool_calls?.length || 0 },
+                  'Ollama generate final stream chunk from buffer processed.',
                 );
                 if (jsonChunk.tool_calls && jsonChunk.tool_calls.length > 0) {
-                  logger.debug({ logRequestId, tool_calls: jsonChunk.tool_calls }, 'Final stream chunk tool calls');
+                    toolLogger.debug({ currentRequestId, tool_calls: jsonChunk.tool_calls }, 'Final stream chunk (from buffer) tool_calls content');
                 }
-                // if (config.getDebugMode()) {
-                //   console.debug(
-                //     'Ollama Generate Response (streaming chunk):',
-                //     JSON.stringify(jsonChunk, null, 2),
-                //   );
-                // }
                 yield jsonChunk;
-              } catch (e) {
-                logger.error(
-                  { logRequestId, action: 'generate_stream_parse_error', model: currentModel, error: e, buffer },
-                  'Error parsing final JSON chunk in stream:',
+              } catch (e: any) {
+                toolLogger.error(
+                  { currentRequestId, action: 'ollama_stream_parse_error', model: currentModel, error: e.message, buffer },
+                  'Error parsing final JSON chunk in stream',
                 );
-                // console.error(
-                //   'Error parsing final JSON chunk in stream:',
-                //   e,
-                //   buffer,
-                // );
               }
             }
-            logger.info({ logRequestId, action: 'generate_stream_end', model: currentModel }, 'Ollama generate stream ended.');
+            toolLogger.info({ currentRequestId, action: 'ollama_generate_stream_end', model: currentModel }, 'Ollama generate stream ended.');
             break;
           }
           buffer += decoder.decode(value, { stream: true });
@@ -258,33 +237,25 @@ export class OllamaClient {
             if (line) {
               try {
                 const jsonChunk = JSON.parse(line) as OllamaGenerateResponse;
-                 logger.debug(
-                  { logRequestId, action: 'generate_stream_chunk', model: currentModel, done: jsonChunk.done, tool_calls: jsonChunk.tool_calls?.length || 0 },
+                toolLogger.debug(
+                  { currentRequestId, action: 'ollama_stream_chunk', model: currentModel, done: jsonChunk.done, tool_calls_count: jsonChunk.tool_calls?.length || 0 },
                   'Ollama generate stream chunk processed.',
                 );
                 if (jsonChunk.tool_calls && jsonChunk.tool_calls.length > 0) {
-                  logger.debug({ logRequestId, tool_calls: jsonChunk.tool_calls }, 'Stream chunk tool calls');
+                    toolLogger.debug({ currentRequestId, tool_calls: jsonChunk.tool_calls }, 'Stream chunk tool_calls content');
                 }
-                // if (config.getDebugMode()) {
-                //   console.debug(
-                //     'Ollama Generate Response (streaming chunk):',
-                //     JSON.stringify(jsonChunk, null, 2),
-                //   );
-                // }
                 yield jsonChunk;
-              } catch (e) {
-                logger.error(
-                  { logRequestId, action: 'generate_stream_parse_error', model: currentModel, error: e, line },
-                  'Error parsing JSON chunk in stream:',
+              } catch (e: any) {
+                toolLogger.error(
+                  { currentRequestId, action: 'ollama_stream_parse_error', model: currentModel, error: e.message, line },
+                  'Error parsing JSON chunk in stream',
                 );
-                // console.error('Error parsing JSON chunk in stream:', e, line);
-                // Optionally, decide if you want to throw or continue
               }
             }
           }
         }
       }
-      return streamGenerator(toolLogger, requestId, params.model); // Pass logger, requestId and model
+      return streamGenerator(requestId, params.model); // Pass requestId and model
     }
   }
 
@@ -310,12 +281,12 @@ export interface OllamaGenerateParams {
   format?: 'json'; // If format is json, Ollama will attempt to output valid JSON
   images?: string[]; // base64 encoded images (for multimodal models)
   options?: Record<string, unknown>; // Model parameters, e.g., temperature, top_p
-  tools?: Array<{ // Definition for tools, if Ollama supports it this way
+  tools?: Array<{
     type: 'function';
     function: {
       name: string;
       description?: string;
-      parameters: Record<string, unknown>; // JSON schema for parameters
+      parameters: Record<string, unknown>;
     };
   }>;
 }
